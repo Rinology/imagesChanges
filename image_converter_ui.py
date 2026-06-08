@@ -128,16 +128,16 @@ class ImageConverterApp:
         self.update_name_preview() # 초기화
 
         # 저장 위치
-        loc_frame = ttk.Frame(settings_frame)
-        loc_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(loc_frame, text="저장 위치:").pack(side=tk.LEFT)
-        self.save_loc_var = tk.StringVar(value="same")
-        ttk.Radiobutton(loc_frame, text="현재 폴더", variable=self.save_loc_var, value="same", command=self.toggle_subfolder_options).pack(side=tk.LEFT, padx=5)
-        ttk.Radiobutton(loc_frame, text="하위 폴더", variable=self.save_loc_var, value="sub", command=self.toggle_subfolder_options).pack(side=tk.LEFT, padx=5)
+        self.loc_frame = ttk.Frame(settings_frame)
+        self.loc_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(self.loc_frame, text="저장 위치:").pack(side=tk.LEFT)
+        self.save_loc_var = tk.StringVar(value="sub")
+        ttk.Radiobutton(self.loc_frame, text="현재 폴더", variable=self.save_loc_var, value="same", command=self.toggle_subfolder_options).pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(self.loc_frame, text="하위 폴더", variable=self.save_loc_var, value="sub", command=self.toggle_subfolder_options).pack(side=tk.LEFT, padx=5)
         
         # 하위 폴더 옵션 (숨김/표시 전환용)
         self.subfolder_frame = ttk.Frame(settings_frame)
-        # 기본적으로 숨김
+        self.subfolder_frame.pack(fill=tk.X, pady=2) # 기본적으로 하위 폴더이므로 보임
         
         ttk.Label(self.subfolder_frame, text="폴더명:").pack(side=tk.LEFT)
         self.subfolder_name_var = tk.StringVar(value="output")
@@ -183,6 +183,10 @@ class ImageConverterApp:
         info_frame = ttk.Frame(preview_group)
         info_frame.pack(fill=tk.X, pady=5)
         
+        self.preview_size_var = tk.BooleanVar(value=False)
+        self.chk_preview_size = ttk.Checkbutton(info_frame, text="예상 용량 계산 (느려짐)", variable=self.preview_size_var, command=self.update_expected_size)
+        self.chk_preview_size.pack(side=tk.LEFT, padx=5)
+
         self.lbl_image_info = ttk.Label(info_frame, text="")
         self.lbl_image_info.pack(side=tk.LEFT, padx=10, expand=True)
         
@@ -232,7 +236,7 @@ class ImageConverterApp:
 
     def toggle_subfolder_options(self):
         if self.save_loc_var.get() == "sub":
-            self.subfolder_frame.pack(fill=tk.X, pady=2, after=self.subfolder_frame.master.winfo_children()[3])
+            self.subfolder_frame.pack(fill=tk.X, pady=2, after=self.loc_frame)
         else:
             self.subfolder_frame.pack_forget()
 
@@ -341,6 +345,10 @@ class ImageConverterApp:
             orig_size = os.path.getsize(filepath)
             size_str = self.format_size(orig_size)
         except Exception:
+            return
+            
+        if not self.preview_size_var.get():
+            self.lbl_image_info.config(text=f"{filename} ({size_str})")
             return
             
         self.lbl_image_info.config(text=f"{filename} ({size_str}) -> 예상 변환 용량: 계산 중...")
