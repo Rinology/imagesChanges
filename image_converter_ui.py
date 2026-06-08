@@ -24,6 +24,9 @@ class ImageConverterApp:
         style = ttk.Style()
         style.configure("TButton", padding=5)
         
+        # 푸터를 먼저 생성하여 메인 창 크기에 밀리지 않도록 고정
+        self.setup_footer()
+        
         # 메인 PanedWindow (좌우 분할)
         self.paned_window = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
         self.paned_window.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -38,8 +41,6 @@ class ImageConverterApp:
         
         self.setup_left_panel()
         self.setup_right_panel()
-        
-        self.setup_footer()
 
     def setup_footer(self):
         footer_frame = ttk.Frame(self.root)
