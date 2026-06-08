@@ -156,6 +156,15 @@ class ImageConverterApp:
         ttk.Radiobutton(orig_frame, text="유지", variable=self.original_var, value="keep").pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(orig_frame, text="삭제", variable=self.original_var, value="delete").pack(side=tk.LEFT, padx=5)
 
+        # 압축 강도
+        comp_frame = ttk.Frame(settings_frame)
+        comp_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(comp_frame, text="압축 강도:").pack(side=tk.LEFT)
+        self.compression_var = tk.StringVar(value="6")
+        ttk.Radiobutton(comp_frame, text="최대(느림/최소)", variable=self.compression_var, value="6", command=self.update_expected_size).pack(side=tk.LEFT, padx=2)
+        ttk.Radiobutton(comp_frame, text="일반(적정)", variable=self.compression_var, value="4", command=self.update_expected_size).pack(side=tk.LEFT, padx=2)
+        ttk.Radiobutton(comp_frame, text="빠름(용량증가)", variable=self.compression_var, value="0", command=self.update_expected_size).pack(side=tk.LEFT, padx=2)
+
         # 4. 실행 섹션
         run_frame = ttk.Frame(self.left_frame)
         run_frame.pack(fill=tk.X, pady=10)
@@ -316,11 +325,48 @@ class ImageConverterApp:
             self.lbl_image_preview.config(image=photo, text="", bg="SystemButtonFace")
             self.preview_image_ref = photo # 가비지 컬렉션 방지
             
-            size_str = self.format_size(os.path.getsize(filepath))
-            self.lbl_image_info.config(text=f"{filename} ({size_str})")
+            self.update_expected_size()
         except Exception as e:
             self.lbl_image_preview.config(image='', text="미리보기를 불러올 수 없습니다.", bg="lightgray")
             self.lbl_image_info.config(text=filename)
+
+    def update_expected_size(self, *args):
+        selected_indices = self.listbox.curselection()
+        if not selected_indices: return
+        
+        filename = self.listbox.get(selected_indices[0])
+        filepath = os.path.join(self.selected_folder, filename)
+        
+        try:
+            orig_size = os.path.getsize(filepath)
+            size_str = self.format_size(orig_size)
+        except Exception:
+            return
+            
+        self.lbl_image_info.config(text=f"{filename} ({size_str}) -> 예상 변환 용량: 계산 중...")
+        
+        def calc():
+            try:
+                method_val = int(self.compression_var.get())
+                from io import BytesIO
+                with Image.open(filepath) as img:
+                    rot = self.rotations.get(filepath, 0)
+                    if rot != 0:
+                        img = img.rotate(rot, expand=True)
+                    if img.mode in ("RGBA", "P"):
+                        img = img.convert("RGB")
+                    
+                    buffer = BytesIO()
+                    img.save(buffer, format="webp", quality=80, method=method_val)
+                    expected = len(buffer.getvalue())
+                
+                self.root.after(0, lambda: self.lbl_image_info.config(
+                    text=f"{filename} ({size_str}) -> 예상 변환 용량: 약 {self.format_size(expected)}"
+                ))
+            except:
+                self.root.after(0, lambda: self.lbl_image_info.config(text=f"{filename} ({size_str}) -> 예상 용량 계산 실패"))
+        
+        threading.Thread(target=calc, daemon=True).start()
 
     def rotate_current_image(self):
         selected_indices = self.listbox.curselection()
@@ -404,7 +450,8 @@ class ImageConverterApp:
                         img = img.rotate(rot, expand=True)
                     if img.mode in ("RGBA", "P"):
                         img = img.convert("RGB")
-                    img.save(new_filepath, "webp", quality=80, method=6)
+                    method_val = int(self.compression_var.get())
+                    img.save(new_filepath, "webp", quality=80, method=method_val)
                 
                 new_size = os.path.getsize(new_filepath)
                 size_diff = orig_size - new_size
