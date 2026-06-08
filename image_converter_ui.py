@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import threading
 from datetime import datetime
 import webbrowser
+import send2trash
 
 class ImageConverterApp:
     def __init__(self, root):
@@ -304,12 +305,17 @@ class ImageConverterApp:
         selected_indices = self.listbox.curselection()
         if not selected_indices: return
         
+        removed_count = 0
         # 삭제는 뒤에서부터 해야 인덱스가 꼬이지 않음
         for pos in reversed(selected_indices):
             filename = self.listbox.get(pos)
             self.listbox.delete(pos)
             if filename in self.image_files:
                 self.image_files.remove(filename)
+                removed_count += 1
+                
+        if removed_count > 0:
+            self.log(f"🗑️ 목록에서 {removed_count}개의 파일이 제외되었습니다.")
                 
         self.update_file_count_label()
         self.on_listbox_select()
@@ -487,8 +493,8 @@ class ImageConverterApp:
                 self.log(log_msg)
                 
                 if delete_orig and filepath != new_filepath:
-                    os.remove(filepath)
-                    self.log(f"   🗑️ 원본 삭제됨: {filename}")
+                    send2trash.send2trash(filepath)
+                    self.log(f"   🗑️ 원본이 휴지통으로 이동됨: {filename}")
                     
                 success_count += 1
             except Exception as e:
