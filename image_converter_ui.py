@@ -94,6 +94,8 @@ class ImageConverterApp:
         ttk.Label(btn_frame, text="").pack(pady=5)
         ttk.Button(btn_frame, text="▲ 위로 이동", command=self.move_up).pack(fill=tk.X, pady=2)
         ttk.Button(btn_frame, text="▼ 아래로 이동", command=self.move_down).pack(fill=tk.X, pady=2)
+        ttk.Label(btn_frame, text="").pack(pady=5)
+        ttk.Button(btn_frame, text="❌ 선택 항목 제외", command=self.remove_from_list).pack(fill=tk.X, pady=2)
 
         # 3. 변환 설정 섹션
         settings_frame = ttk.LabelFrame(self.left_frame, text="3. 변환 설정", padding=10)
@@ -164,6 +166,10 @@ class ImageConverterApp:
         ttk.Radiobutton(comp_frame, text="최대(느림/최소)", variable=self.compression_var, value="6", command=self.update_expected_size).pack(side=tk.LEFT, padx=2)
         ttk.Radiobutton(comp_frame, text="일반(적정)", variable=self.compression_var, value="4", command=self.update_expected_size).pack(side=tk.LEFT, padx=2)
         ttk.Radiobutton(comp_frame, text="빠름(용량증가)", variable=self.compression_var, value="0", command=self.update_expected_size).pack(side=tk.LEFT, padx=2)
+        
+        # 예상 용량 계산 옵션
+        self.preview_size_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(comp_frame, text="예상 용량 계산 (느려짐)", variable=self.preview_size_var, command=self.update_expected_size).pack(side=tk.LEFT, padx=10)
 
         # 4. 실행 섹션
         run_frame = ttk.Frame(self.left_frame)
@@ -183,10 +189,6 @@ class ImageConverterApp:
         info_frame = ttk.Frame(preview_group)
         info_frame.pack(fill=tk.X, pady=5)
         
-        self.preview_size_var = tk.BooleanVar(value=False)
-        self.chk_preview_size = ttk.Checkbutton(info_frame, text="예상 용량 계산 (느려짐)", variable=self.preview_size_var, command=self.update_expected_size)
-        self.chk_preview_size.pack(side=tk.LEFT, padx=5)
-
         self.lbl_image_info = ttk.Label(info_frame, text="")
         self.lbl_image_info.pack(side=tk.LEFT, padx=10, expand=True)
         
@@ -296,6 +298,20 @@ class ImageConverterApp:
             self.listbox.delete(pos)
             self.listbox.insert(pos + 1, item)
             self.listbox.select_set(pos + 1)
+        self.on_listbox_select()
+
+    def remove_from_list(self):
+        selected_indices = self.listbox.curselection()
+        if not selected_indices: return
+        
+        # 삭제는 뒤에서부터 해야 인덱스가 꼬이지 않음
+        for pos in reversed(selected_indices):
+            filename = self.listbox.get(pos)
+            self.listbox.delete(pos)
+            if filename in self.image_files:
+                self.image_files.remove(filename)
+                
+        self.update_file_count_label()
         self.on_listbox_select()
 
     def on_listbox_select(self, event=None):
