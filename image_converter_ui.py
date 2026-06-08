@@ -162,10 +162,10 @@ class ImageConverterApp:
     def setup_right_panel(self):
         # 1. 썸네일 미리보기 영역
         preview_group = ttk.LabelFrame(self.right_frame, text="이미지 미리보기", padding=10)
-        preview_group.pack(fill=tk.X, pady=(0, 5))
+        preview_group.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
         
-        self.lbl_image_preview = tk.Label(preview_group, text="리스트에서 이미지를 선택하면\n여기에 미리보기가 표시됩니다.", bg="lightgray", width=40, height=15, justify=tk.CENTER)
-        self.lbl_image_preview.pack(pady=5)
+        self.lbl_image_preview = tk.Label(preview_group, text="리스트에서 이미지를 선택하면\n여기에 미리보기가 표시됩니다.", bg="lightgray", justify=tk.CENTER)
+        self.lbl_image_preview.pack(fill=tk.BOTH, expand=True, pady=5)
         
         self.lbl_image_info = ttk.Label(preview_group, text="")
         self.lbl_image_info.pack()
@@ -291,8 +291,8 @@ class ImageConverterApp:
         
         try:
             img = Image.open(filepath)
-            # 썸네일 생성 (비율 유지하며 최대 300x300)
-            img.thumbnail((300, 300))
+            # 썸네일 생성 (비율 유지하며 최대 550x550)
+            img.thumbnail((550, 550))
             photo = ImageTk.PhotoImage(img)
             
             self.lbl_image_preview.config(image=photo, text="", bg="SystemButtonFace")
