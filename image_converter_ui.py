@@ -4,6 +4,7 @@ from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 import threading
 from datetime import datetime
+import webbrowser
 
 class ImageConverterApp:
     def __init__(self, root):
@@ -35,6 +36,21 @@ class ImageConverterApp:
         
         self.setup_left_panel()
         self.setup_right_panel()
+        
+        self.setup_footer()
+
+    def setup_footer(self):
+        footer_frame = ttk.Frame(self.root)
+        footer_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=10, pady=5)
+        
+        # 깃허브 주소 라벨 (클릭 시 이동)
+        lbl_github = tk.Label(footer_frame, text="GitHub: https://github.com/rinology", fg="blue", cursor="hand2", font=("Consolas", 9, "underline"))
+        lbl_github.pack(side=tk.LEFT)
+        lbl_github.bind("<Button-1>", lambda e: webbrowser.open_new("https://github.com/rinology"))
+        
+        # 닉네임 라벨
+        lbl_nickname = tk.Label(footer_frame, text="Made by rinology", fg="gray", font=("Consolas", 9))
+        lbl_nickname.pack(side=tk.RIGHT)
 
     def setup_left_panel(self):
         # 1. 폴더 선택 섹션
