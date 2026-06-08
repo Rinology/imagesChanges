@@ -9,7 +9,7 @@ class ImageConverterApp:
     def __init__(self, root):
         self.root = root
         self.root.title("이미지 변환 & 이름 변경 프로그램 v2 (WebP)")
-        self.root.geometry("850x750")
+        self.root.geometry("1000x800")
         
         self.selected_folder = ""
         self.image_files = []
