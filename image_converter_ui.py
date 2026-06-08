@@ -14,6 +14,7 @@ class ImageConverterApp:
         
         self.selected_folder = ""
         self.image_files = []
+        self.rotations = {}
         self.preview_image_ref = None # 가비지 컬렉션 방지용
         
         self.setup_ui()
@@ -115,6 +116,9 @@ class ImageConverterApp:
         ttk.Radiobutton(sep_frame, text="_ (언더바)", variable=self.separator_var, value="_", command=self.update_name_preview).pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(sep_frame, text="- (하이픈)", variable=self.separator_var, value="-", command=self.update_name_preview).pack(side=tk.LEFT, padx=5)
         
+        hint_label = ttk.Label(settings_frame, text="* 띄어쓰기 입력 시 위의 이름 연결 기호로 대체됩니다.", foreground="gray", font=("Consolas", 8))
+        hint_label.pack(fill=tk.X, padx=5, pady=(0, 5))
+        
         # 이름 미리보기
         preview_frame = ttk.Frame(settings_frame)
         preview_frame.pack(fill=tk.X, pady=2)
@@ -167,8 +171,14 @@ class ImageConverterApp:
         self.lbl_image_preview = tk.Label(preview_group, text="리스트에서 이미지를 선택하면\n여기에 미리보기가 표시됩니다.", bg="lightgray", justify=tk.CENTER)
         self.lbl_image_preview.pack(fill=tk.BOTH, expand=True, pady=5)
         
-        self.lbl_image_info = ttk.Label(preview_group, text="")
-        self.lbl_image_info.pack()
+        info_frame = ttk.Frame(preview_group)
+        info_frame.pack(fill=tk.X, pady=5)
+        
+        self.lbl_image_info = ttk.Label(info_frame, text="")
+        self.lbl_image_info.pack(side=tk.LEFT, padx=10, expand=True)
+        
+        self.btn_rotate = ttk.Button(info_frame, text="⟳ 90도 회전", command=self.rotate_current_image, state=tk.DISABLED)
+        self.btn_rotate.pack(side=tk.RIGHT, padx=10)
 
         # 2. 진행 상태 및 로그 영역
         log_group = ttk.LabelFrame(self.right_frame, text="진행 상태 및 로그", padding=10)
@@ -232,6 +242,7 @@ class ImageConverterApp:
     def load_images(self):
         self.listbox.delete(0, tk.END)
         self.image_files = []
+        self.rotations = {}
         valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')
         
         for f in os.listdir(self.selected_folder):
@@ -281,8 +292,11 @@ class ImageConverterApp:
         if not selected_indices:
             self.lbl_image_preview.config(image='', text="선택된 이미지가 없습니다.", bg="lightgray")
             self.lbl_image_info.config(text="")
+            self.btn_rotate.config(state=tk.DISABLED)
             self.preview_image_ref = None
             return
+            
+        self.btn_rotate.config(state=tk.NORMAL)
         
         # 첫 번째 선택된 이미지 표시
         first_selected_idx = selected_indices[0]
@@ -291,6 +305,10 @@ class ImageConverterApp:
         
         try:
             img = Image.open(filepath)
+            rot = self.rotations.get(filepath, 0)
+            if rot != 0:
+                img = img.rotate(rot, expand=True)
+                
             # 썸네일 생성 (비율 유지하며 최대 550x550)
             img.thumbnail((550, 550))
             photo = ImageTk.PhotoImage(img)
@@ -303,6 +321,17 @@ class ImageConverterApp:
         except Exception as e:
             self.lbl_image_preview.config(image='', text="미리보기를 불러올 수 없습니다.", bg="lightgray")
             self.lbl_image_info.config(text=filename)
+
+    def rotate_current_image(self):
+        selected_indices = self.listbox.curselection()
+        if not selected_indices: return
+        filename = self.listbox.get(selected_indices[0])
+        filepath = os.path.join(self.selected_folder, filename)
+        
+        current_rot = self.rotations.get(filepath, 0)
+        self.rotations[filepath] = (current_rot - 90) % 360 # 시계 방향으로 90도 회전
+        
+        self.on_listbox_select()
 
     def start_conversion(self):
         if not self.selected_folder:
@@ -370,6 +399,9 @@ class ImageConverterApp:
                 orig_size = os.path.getsize(filepath)
                 
                 with Image.open(filepath) as img:
+                    rot = self.rotations.get(filepath, 0)
+                    if rot != 0:
+                        img = img.rotate(rot, expand=True)
                     if img.mode in ("RGBA", "P"):
                         img = img.convert("RGB")
                     img.save(new_filepath, "webp", quality=80)
