@@ -404,7 +404,7 @@ class ImageConverterApp:
                         img = img.rotate(rot, expand=True)
                     if img.mode in ("RGBA", "P"):
                         img = img.convert("RGB")
-                    img.save(new_filepath, "webp", quality=80)
+                    img.save(new_filepath, "webp", quality=80, method=6)
                 
                 new_size = os.path.getsize(new_filepath)
                 size_diff = orig_size - new_size
