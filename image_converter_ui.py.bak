@@ -108,7 +108,7 @@ class ImageConverterApp:
         name_frame.pack(fill=tk.X, pady=2)
         ttk.Label(name_frame, text="변경할 이름 (영문):").pack(side=tk.LEFT)
         self.entry_basename_var = tk.StringVar(value="my image")
-        self.entry_basename = ttk.Entry(name_frame, textvariable=self.entry_basename_var, width=20, exportselection=False)
+        self.entry_basename = ttk.Entry(name_frame, textvariable=self.entry_basename_var, width=20)
         self.entry_basename.pack(side=tk.LEFT, padx=10)
         self.entry_basename_var.trace_add("write", self.update_name_preview)
         
@@ -145,7 +145,7 @@ class ImageConverterApp:
         
         ttk.Label(self.subfolder_frame, text="폴더명:").pack(side=tk.LEFT)
         self.subfolder_name_var = tk.StringVar(value="output")
-        ttk.Entry(self.subfolder_frame, textvariable=self.subfolder_name_var, width=10, exportselection=False).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(self.subfolder_frame, textvariable=self.subfolder_name_var, width=10).pack(side=tk.LEFT, padx=5)
         
         self.date_prefix_var = tk.StringVar(value="datetime")
         ttk.Radiobutton(self.subfolder_frame, text="년월일시", variable=self.date_prefix_var, value="datetime").pack(side=tk.LEFT)
@@ -324,7 +324,14 @@ class ImageConverterApp:
     def on_listbox_select(self, event=None):
         self.update_file_count_label()
         
+        # 포커스를 잃었을 때 선택 영역이 회색으로 변해 해제된 것처럼 보이는 현상 방지
+        for i in range(self.listbox.size()):
+            self.listbox.itemconfig(i, background="white", foreground="black")
+            
         selected_indices = self.listbox.curselection()
+        for i in selected_indices:
+            self.listbox.itemconfig(i, background="#0078D7", foreground="white")
+            
         if not selected_indices:
             self.lbl_image_preview.config(image='', text="선택된 이미지가 없습니다.", bg="lightgray")
             self.lbl_image_info.config(text="")
