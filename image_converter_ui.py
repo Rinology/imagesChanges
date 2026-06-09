@@ -108,7 +108,7 @@ class ImageConverterApp:
         name_frame.pack(fill=tk.X, pady=2)
         ttk.Label(name_frame, text="변경할 이름 (영문):").pack(side=tk.LEFT)
         self.entry_basename_var = tk.StringVar(value="my image")
-        self.entry_basename = ttk.Entry(name_frame, textvariable=self.entry_basename_var, width=20)
+        self.entry_basename = ttk.Entry(name_frame, textvariable=self.entry_basename_var, width=20, exportselection=False)
         self.entry_basename.pack(side=tk.LEFT, padx=10)
         self.entry_basename_var.trace_add("write", self.update_name_preview)
         
@@ -145,7 +145,7 @@ class ImageConverterApp:
         
         ttk.Label(self.subfolder_frame, text="폴더명:").pack(side=tk.LEFT)
         self.subfolder_name_var = tk.StringVar(value="output")
-        ttk.Entry(self.subfolder_frame, textvariable=self.subfolder_name_var, width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(self.subfolder_frame, textvariable=self.subfolder_name_var, width=10, exportselection=False).pack(side=tk.LEFT, padx=5)
         
         self.date_prefix_var = tk.StringVar(value="datetime")
         ttk.Radiobutton(self.subfolder_frame, text="년월일시", variable=self.date_prefix_var, value="datetime").pack(side=tk.LEFT)
