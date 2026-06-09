@@ -83,7 +83,7 @@ class ImageConverterApp:
         self.scrollbar = ttk.Scrollbar(scroll_frame)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        self.listbox = tk.Listbox(scroll_frame, selectmode=tk.EXTENDED, yscrollcommand=self.scrollbar.set, font=("Consolas", 10))
+        self.listbox = tk.Listbox(scroll_frame, selectmode=tk.EXTENDED, yscrollcommand=self.scrollbar.set, font=("Consolas", 10), exportselection=False)
         self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.scrollbar.config(command=self.listbox.yview)
         self.listbox.bind("<<ListboxSelect>>", self.on_listbox_select)
@@ -512,8 +512,6 @@ class ImageConverterApp:
         if total_saved_bytes > 0:
             self.log(f"💾 총 절감된 용량: {self.format_size(total_saved_bytes)}")
         self.btn_run.config(state=tk.NORMAL)
-        
-        self.root.after(1000, self.load_images)
 
 if __name__ == "__main__":
     root = tk.Tk()
