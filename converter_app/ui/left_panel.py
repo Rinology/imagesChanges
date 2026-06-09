@@ -210,17 +210,36 @@ class LeftPanel(ttk.Frame):
             self.callbacks['on_log'](f"🗑️ 목록에서 {removed_count}개의 파일이 제외되었습니다.")
 
     def on_listbox_select(self, event=None):
+        if getattr(self, '_ignore_event', False):
+            return
+
+        current_selection = self.listbox.curselection()
+
+        # 스퓨리어스(오작동) 선택 해제 방지
+        # 사용자가 엔트리 창에서 텍스트를 드래그할 때 Listbox의 선택이 풀리는 버그 대응
+        if event is not None:
+            # 포커스가 Listbox에 없는데 선택이 0개가 된 경우 (외부 위젯 드래그/클릭 등)
+            if self.focus_get() != self.listbox and len(current_selection) == 0:
+                if hasattr(self, '_last_selection') and len(self._last_selection) > 0:
+                    # 이전 선택 상태 강제 복구
+                    self._ignore_event = True
+                    for i in self._last_selection:
+                        self.listbox.select_set(i)
+                    self._ignore_event = False
+                    current_selection = self._last_selection
+
+        self._last_selection = current_selection
+
         self.update_file_count_label()
         
         for i in range(self.listbox.size()):
             self.listbox.itemconfig(i, background="white", foreground="black")
             
-        selected_indices = self.listbox.curselection()
-        for i in selected_indices:
+        for i in current_selection:
             self.listbox.itemconfig(i, background="#0078D7", foreground="white")
             
         if 'on_selection_change' in self.callbacks:
-            self.callbacks['on_selection_change']([self.listbox.get(i) for i in selected_indices])
+            self.callbacks['on_selection_change']([self.listbox.get(i) for i in current_selection])
 
     def trigger_size_update(self):
         if 'on_selection_change' in self.callbacks:
