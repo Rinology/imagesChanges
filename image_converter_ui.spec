@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['image_converter_ui.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[],
