@@ -23,8 +23,8 @@ class ImageProcessor:
                 with Image.open(filepath) as img:
                     if rotation != 0:
                         img = img.rotate(rotation, expand=True)
-                    if img.mode in ("RGBA", "P"):
-                        img = img.convert("RGB")
+                    if img.mode == "P":
+                        img = img.convert("RGBA")
                     
                     buffer = BytesIO()
                     img.save(buffer, format="webp", quality=80, method=method_val)
@@ -87,8 +87,8 @@ class ImageProcessor:
                         rot = rotations.get(filepath, 0)
                         if rot != 0:
                             img = img.rotate(rot, expand=True)
-                        if img.mode in ("RGBA", "P"):
-                            img = img.convert("RGB")
+                        if img.mode == "P":
+                            img = img.convert("RGBA")
                         method_val = int(compression_method)
                         img.save(new_filepath, "webp", quality=80, method=method_val)
                     
