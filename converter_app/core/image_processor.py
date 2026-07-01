@@ -23,11 +23,17 @@ class ImageProcessor:
                 with Image.open(filepath) as img:
                     if rotation != 0:
                         img = img.rotate(rotation, expand=True)
-                    if img.mode == "P":
+                    if img.mode in ("RGBA", "LA", "P") or (img.mode == "RGB" and "transparency" in img.info):
                         img = img.convert("RGBA")
+                        has_alpha = img.getchannel("A").getextrema()[0] < 255
+                    else:
+                        has_alpha = False
                     
                     buffer = BytesIO()
-                    img.save(buffer, format="webp", quality=80, method=method_val)
+                    if has_alpha:
+                        img.save(buffer, format="webp", lossless=True, method=method_val)
+                    else:
+                        img.save(buffer, format="webp", quality=80, method=method_val)
                     expected = len(buffer.getvalue())
                 
                 callback_success(expected)
@@ -87,10 +93,17 @@ class ImageProcessor:
                         rot = rotations.get(filepath, 0)
                         if rot != 0:
                             img = img.rotate(rot, expand=True)
-                        if img.mode == "P":
+                        if img.mode in ("RGBA", "LA", "P") or (img.mode == "RGB" and "transparency" in img.info):
                             img = img.convert("RGBA")
+                            has_alpha = img.getchannel("A").getextrema()[0] < 255
+                        else:
+                            has_alpha = False
+                        
                         method_val = int(compression_method)
-                        img.save(new_filepath, "webp", quality=80, method=method_val)
+                        if has_alpha:
+                            img.save(new_filepath, "webp", lossless=True, method=method_val)
+                        else:
+                            img.save(new_filepath, "webp", quality=80, method=method_val)
                     
                     new_size = os.path.getsize(new_filepath)
                     size_diff = orig_size - new_size
