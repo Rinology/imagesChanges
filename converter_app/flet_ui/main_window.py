@@ -5,7 +5,7 @@ from converter_app.flet_ui.right_panel import RightPanel
 class MainWindow(ft.Container):
     def __init__(self, page: ft.Page):
         super().__init__(expand=True)
-        self.page = page
+        self.app_page = page
         
         self.app_state = {
             'selected_folder': "",
@@ -13,10 +13,15 @@ class MainWindow(ft.Container):
             'rotations': {}
         }
         self.content = self.build_ui()
+        self.app_page.pubsub.subscribe(self.on_pubsub_message)
         
+    def on_pubsub_message(self, msg):
+        if isinstance(msg, tuple) and len(msg) == 3 and msg[0] == "progress":
+            _, current, total = msg
+            self.right_panel.update_progress(current, total)
     def build_ui(self):
         self.left_panel = LeftPanel(
-            self.page, self.app_state, 
+            self.app_page, self.app_state, 
             on_selection_change=self.on_selection_change,
             on_log=self.on_log,
             on_update_preview=self.on_update_preview,
@@ -24,14 +29,14 @@ class MainWindow(ft.Container):
             on_file_rotated=self.on_file_rotated
         )
         self.right_panel = RightPanel(
-            self.page, self.app_state,
+            self.app_page, self.app_state,
             on_rotate_request=self.left_panel.handle_rotate
         )
         
         return ft.Row(
             controls=[
                 ft.Container(content=self.left_panel, expand=True, padding=10),
-                ft.VerticalDivider(width=1, color=ft.colors.OUTLINE),
+                ft.VerticalDivider(width=1, color=ft.Colors.OUTLINE),
                 ft.Container(content=self.right_panel, expand=True, padding=10)
             ],
             expand=True

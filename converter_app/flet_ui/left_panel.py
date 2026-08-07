@@ -6,7 +6,7 @@ from converter_app.flet_ui.rename_dialog import RenameDialog
 class LeftPanel(ft.Container):
     def __init__(self, page, app_state, on_selection_change, on_log, on_update_preview, on_run, on_file_rotated):
         super().__init__(expand=True)
-        self.page = page
+        self.app_page = page
         self.app_state = app_state
         
         self.on_selection_change = on_selection_change
@@ -23,16 +23,21 @@ class LeftPanel(ft.Container):
         
     def build_ui(self):
         # 1. Folder Selection
-        self.folder_picker = ft.FilePicker(on_result=self.on_folder_selected)
-        self.page.overlay.append(self.folder_picker)
+        self.folder_picker = ft.FilePicker()
+        self.app_page.overlay.append(self.folder_picker)
         
-        self.lbl_folder_path = ft.Text("선택된 폴더 없음", color=ft.colors.ON_SURFACE_VARIANT, expand=True)
+        self.lbl_folder_path = ft.Text("선택된 폴더 없음", color=ft.Colors.ON_SURFACE_VARIANT, expand=True)
+        
+        async def on_open_folder(e):
+            path = await self.folder_picker.get_directory_path("이미지가 있는 폴더를 선택하세요")
+            self.on_folder_selected(path)
+            
         folder_frame = ft.Container(
             content=ft.Row([
-                ft.ElevatedButton("폴더 열기", icon=ft.icons.FOLDER_OPEN, on_click=lambda _: self.folder_picker.get_directory_path("이미지가 있는 폴더를 선택하세요")),
+                ft.ElevatedButton("폴더 열기", icon=ft.Icons.FOLDER_OPEN, on_click=on_open_folder),
                 self.lbl_folder_path
             ]),
-            padding=10, border=ft.border.all(1, ft.colors.OUTLINE), border_radius=8
+            padding=10, border=ft.Border.all(1, ft.Colors.OUTLINE), border_radius=8
         )
         
         # 2. File List
@@ -46,7 +51,7 @@ class LeftPanel(ft.Container):
             ft.TextButton("▲ 위로 이동", on_click=self.move_up),
             ft.TextButton("▼ 아래로 이동", on_click=self.move_down),
             ft.Divider(),
-            ft.TextButton("❌ 선택 제외", on_click=self.remove_from_list, style=ft.ButtonStyle(color=ft.colors.ERROR)),
+            ft.TextButton("❌ 선택 제외", on_click=self.remove_from_list, style=ft.ButtonStyle(color=ft.Colors.ERROR)),
         ])
         
         list_frame = ft.Container(
@@ -54,36 +59,52 @@ class LeftPanel(ft.Container):
                 ft.Text("이미지 파일 목록", weight=ft.FontWeight.BOLD),
                 self.lbl_file_count,
                 ft.Row([
-                    ft.Container(content=self.file_list_view, expand=True, border=ft.border.all(1, ft.colors.OUTLINE), border_radius=5, padding=5),
+                    ft.Container(content=self.file_list_view, expand=True, border=ft.Border.all(1, ft.Colors.OUTLINE), border_radius=5, padding=5),
                     btn_frame
                 ], expand=True)
             ]),
-            expand=True, padding=10, border=ft.border.all(1, ft.colors.OUTLINE), border_radius=8
+            expand=True, padding=10, border=ft.Border.all(1, ft.Colors.OUTLINE), border_radius=8
         )
         
         # 3. Settings Tabs
         self.build_compress_tab()
         self.build_rename_tab()
         
+        self.tab_bar = ft.TabBar(
+            tabs=[
+                ft.Tab(label="압축 및 이름변경"),
+                ft.Tab(label="단순 이름변경")
+            ]
+        )
+        
+        self.tab_view = ft.TabBarView(
+            expand=True,
+            controls=[
+                self.tab_compress,
+                self.tab_rename
+            ]
+        )
+        
         self.tabs = ft.Tabs(
+            length=2,
             selected_index=0,
             animation_duration=300,
-            tabs=[
-                ft.Tab(text="압축 및 이름변경", content=self.tab_compress),
-                ft.Tab(text="단순 이름변경", content=self.tab_rename)
-            ],
-            expand=True
+            expand=True,
+            content=ft.Column([
+                self.tab_bar,
+                self.tab_view
+            ], expand=True)
         )
         
         settings_frame = ft.Container(
             content=self.tabs,
-            height=280, padding=10, border=ft.border.all(1, ft.colors.OUTLINE), border_radius=8
+            height=280, padding=10, border=ft.Border.all(1, ft.Colors.OUTLINE), border_radius=8
         )
         
         # 4. Run Button
         self.btn_run = ft.ElevatedButton(
             "🚀 실행", 
-            style=ft.ButtonStyle(bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, padding=ft.padding.all(20)),
+            style=ft.ButtonStyle(bgcolor=ft.Colors.PRIMARY, color=ft.Colors.ON_PRIMARY, padding=20),
             on_click=self.start_conversion
         )
         
@@ -91,13 +112,13 @@ class LeftPanel(ft.Container):
             folder_frame,
             list_frame,
             settings_frame,
-            ft.Container(content=self.btn_run, alignment=ft.alignment.center)
+            ft.Container(content=self.btn_run, alignment=ft.Alignment.CENTER)
         ], expand=True)
         
     def build_compress_tab(self):
         self.c_name_input = ft.TextField(label="변경할 이름 (영문)", value="my image", width=200, on_change=self.update_c_preview)
         self.c_sep_rg = ft.RadioGroup(content=ft.Row([ft.Radio(value="_", label="_ (언더바)"), ft.Radio(value="-", label="- (하이픈)")]), value="_", on_change=self.update_c_preview)
-        self.c_preview_lbl = ft.Text("", color=ft.colors.BLUE, weight=ft.FontWeight.BOLD)
+        self.c_preview_lbl = ft.Text("", color=ft.Colors.BLUE, weight=ft.FontWeight.BOLD)
         
         self.c_save_loc = ft.RadioGroup(content=ft.Row([ft.Radio(value="same", label="현재 폴더"), ft.Radio(value="sub", label="하위 폴더")]), value="sub", on_change=self.toggle_c_subfolder)
         self.c_sub_name = ft.TextField(label="폴더명", value="output", width=120)
@@ -105,12 +126,12 @@ class LeftPanel(ft.Container):
         self.c_sub_row = ft.Row([self.c_sub_name, self.c_date_prefix])
         
         self.c_orig = ft.RadioGroup(content=ft.Row([ft.Radio(value="keep", label="유지"), ft.Radio(value="delete", label="삭제")]), value="keep")
-        self.c_comp = ft.Dropdown(options=[ft.dropdown.Option("6", "최대(느림)"), ft.dropdown.Option("4", "일반(적정)"), ft.dropdown.Option("0", "빠름")], value="6", width=150, label="압축 강도", on_change=self.on_comp_change)
+        self.c_comp = ft.Dropdown(options=[ft.dropdown.Option("6", "최대(느림)"), ft.dropdown.Option("4", "일반(적정)"), ft.dropdown.Option("0", "빠름")], value="6", width=150, label="압축 강도", on_select=self.on_comp_change)
         self.c_preview_size = ft.Switch(label="예상 용량 계산 (느려짐)", value=False, on_change=self.on_comp_change)
         
         self.tab_compress = ft.Column([
             ft.Row([self.c_name_input, ft.Text("이름 연결 기호:"), self.c_sep_rg]),
-            ft.Row([ft.Text("적용 예시:", color=ft.colors.BLUE), self.c_preview_lbl]),
+            ft.Row([ft.Text("적용 예시:", color=ft.Colors.BLUE), self.c_preview_lbl]),
             ft.Row([ft.Text("저장 위치:"), self.c_save_loc, self.c_sub_row]),
             ft.Row([ft.Text("원본 파일:"), self.c_orig, self.c_comp, self.c_preview_size])
         ], scroll=ft.ScrollMode.AUTO)
@@ -119,10 +140,10 @@ class LeftPanel(ft.Container):
     def build_rename_tab(self):
         self.r_name_input = ft.TextField(label="변경할 이름", value="사진 고양이", width=200, on_change=self.update_r_preview)
         self.r_sep_rg = ft.RadioGroup(content=ft.Row([ft.Radio(value="_", label="_ (언더바)"), ft.Radio(value="-", label="- (하이픈)")]), value="-", on_change=self.update_r_preview)
-        self.r_preview_lbl = ft.Text("", color=ft.colors.BLUE, weight=ft.FontWeight.BOLD)
+        self.r_preview_lbl = ft.Text("", color=ft.Colors.BLUE, weight=ft.FontWeight.BOLD)
         
-        self.r_pad = ft.Dropdown(options=[ft.dropdown.Option(x) for x in ["지정안함", "자동", "2자리", "3자리", "4자리", "5자리", "6자리"]], value="자동", width=120, label="숫자 패딩", on_change=self.update_r_preview)
-        self.r_ext = ft.Dropdown(options=[ft.dropdown.Option(x) for x in ["원본 유지", ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"]], value="원본 유지", width=120, label="확장자", on_change=self.update_r_preview)
+        self.r_pad = ft.Dropdown(options=[ft.dropdown.Option(x) for x in ["지정안함", "자동", "2자리", "3자리", "4자리", "5자리", "6자리"]], value="자동", width=120, label="숫자 패딩", on_select=self.update_r_preview)
+        self.r_ext = ft.Dropdown(options=[ft.dropdown.Option(x) for x in ["원본 유지", ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"]], value="원본 유지", width=120, label="확장자", on_select=self.update_r_preview)
         
         self.r_save_loc = ft.RadioGroup(content=ft.Row([ft.Radio(value="same", label="현재 폴더"), ft.Radio(value="sub", label="하위 폴더")]), value="sub", on_change=self.toggle_r_subfolder)
         self.r_sub_name = ft.TextField(label="폴더명", value="renamed", width=120)
@@ -134,7 +155,7 @@ class LeftPanel(ft.Container):
         self.tab_rename = ft.Column([
             ft.Row([self.r_name_input, ft.Text("이름 연결 기호:"), self.r_sep_rg]),
             ft.Row([self.r_pad, self.r_ext]),
-            ft.Row([ft.Text("적용 예시:", color=ft.colors.BLUE), self.r_preview_lbl]),
+            ft.Row([ft.Text("적용 예시:", color=ft.Colors.BLUE), self.r_preview_lbl]),
             ft.Row([ft.Text("저장 위치:"), self.r_save_loc, self.r_sub_row]),
             ft.Row([ft.Text("원본 파일:"), self.r_orig])
         ], scroll=ft.ScrollMode.AUTO)
@@ -151,11 +172,11 @@ class LeftPanel(ft.Container):
         sep = self.c_sep_rg.value
         processed = raw_name.replace(" ", sep) if raw_name else "이름없음"
         self.c_preview_lbl.value = f"{processed}{sep}1.webp"
-        self.page.update()
+        self.app_page.update()
         
     def toggle_c_subfolder(self, e):
         self.c_sub_row.visible = (self.c_save_loc.value == "sub")
-        self.page.update()
+        self.app_page.update()
         
     def update_r_preview(self, e):
         raw_name = self.r_name_input.value.strip()
@@ -173,18 +194,18 @@ class LeftPanel(ft.Container):
         
         ext = ".확장자" if self.r_ext.value == "원본 유지" else self.r_ext.value
         self.r_preview_lbl.value = f"{processed}{sep}{pad}{ext}"
-        self.page.update()
+        self.app_page.update()
         
     def toggle_r_subfolder(self, e):
         self.r_sub_row.visible = (self.r_save_loc.value == "sub")
-        self.page.update()
+        self.app_page.update()
 
-    def on_folder_selected(self, e):
-        if e.path:
-            folder = e.path
+    def on_folder_selected(self, path):
+        if path:
+            folder = path
             self.app_state['selected_folder'] = folder
             self.lbl_folder_path.value = folder
-            self.lbl_folder_path.color = ft.colors.ON_SURFACE
+            self.lbl_folder_path.color = ft.Colors.ON_SURFACE
             
             self.app_state['image_files'] = []
             self.app_state['rotations'] = {}
@@ -209,12 +230,12 @@ class LeftPanel(ft.Container):
             container = ft.Container(
                 content=ft.Text(f),
                 padding=5,
-                bgcolor=ft.colors.PRIMARY_CONTAINER if is_selected else ft.colors.TRANSPARENT,
+                bgcolor=ft.Colors.PRIMARY_CONTAINER if is_selected else ft.Colors.TRANSPARENT,
                 on_click=make_on_click(i)
             )
             self.file_list_view.controls.append(container)
         self.update_file_count()
-        self.page.update()
+        self.app_page.update()
         
     def toggle_selection(self, idx):
         if idx in self.selected_file_indices:
@@ -297,7 +318,7 @@ class LeftPanel(ft.Container):
 
     def set_run_button_state(self, state):
         self.btn_run.disabled = not state
-        self.page.update()
+        self.app_page.update()
 
     def start_conversion(self, e):
         if not self.app_state.get('selected_folder'):
@@ -362,14 +383,14 @@ class LeftPanel(ft.Container):
                 self.execute_run(selected_files, settings)
                 
             dialog = RenameDialog(selected_files, new_names, on_confirm)
-            self.page.overlay.append(dialog)
+            self.app_page.overlay.append(dialog)
             dialog.open = True
-            self.page.update()
+            self.app_page.update()
 
     def show_snack(self, message):
-        self.page.snack_bar = ft.SnackBar(ft.Text(message))
-        self.page.snack_bar.open = True
-        self.page.update()
+        self.app_page.snack_bar = ft.SnackBar(ft.Text(message))
+        self.app_page.snack_bar.open = True
+        self.app_page.update()
 
     def execute_run(self, selected_files, settings):
         self.set_run_button_state(False)
@@ -379,15 +400,12 @@ class LeftPanel(ft.Container):
             self.on_log(msg)
             
         def progress_cb(current, total):
-            self.page.pubsub.send_all(("progress", current, total)) # just direct call in flet isn't thread safe without page update, but page.update is fine if passed. We can pass direct callback.
-            # actually we can just pass callback that does page.update
-            # but wait, the callback is from another thread. In flet, UI updates from other threads should be safe if we call page.update()
-            self.page.window_to_front() # optional
+            self.app_page.pubsub.send_all(("progress", current, total))
             
         callbacks = {
-            'log': lambda m: self.page.run_thread(self.on_log, m),
-            'progress': lambda c, t: self.page.run_thread(self.page.pubsub.send_all, ("progress", c, t)),
-            'done': lambda s, e, b: self.page.run_thread(self.on_run_done)
+            'log': lambda m: self.app_page.run_thread(self.on_log, m),
+            'progress': lambda c, t: self.app_page.run_thread(self.app_page.pubsub.send_all, ("progress", c, t)),
+            'done': lambda s, e, b: self.app_page.run_thread(self.on_run_done)
         }
         
         if settings.get('mode') == 'rename':
