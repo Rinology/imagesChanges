@@ -145,16 +145,31 @@ class ImageConverterApp:
             'done': done_cb
         }
         
-        ImageProcessor.process_images_async(
-            selected_files,
-            self.app_state['selected_folder'],
-            settings['raw_name'],
-            settings['separator'],
-            settings['save_location'],
-            settings['subfolder_name'],
-            settings['date_prefix'],
-            settings['delete_orig'],
-            settings['compression_method'],
-            self.app_state['rotations'],
-            callbacks
-        )
+        if settings.get('mode') == 'rename':
+            ImageProcessor.rename_images_async(
+                selected_files,
+                self.app_state['selected_folder'],
+                settings['raw_name'],
+                settings['separator'],
+                settings['save_location'],
+                settings['subfolder_name'],
+                settings['date_prefix'],
+                settings['delete_orig'],
+                callbacks,
+                settings['pad_mode'],
+                settings['target_ext']
+            )
+        else:
+            ImageProcessor.process_images_async(
+                selected_files,
+                self.app_state['selected_folder'],
+                settings['raw_name'],
+                settings['separator'],
+                settings['save_location'],
+                settings['subfolder_name'],
+                settings['date_prefix'],
+                settings['delete_orig'],
+                settings['compression_method'],
+                self.app_state['rotations'],
+                callbacks
+            )
