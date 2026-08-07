@@ -8,7 +8,28 @@ import shutil
 
 class ImageProcessor:
     @staticmethod
-    def format_size(size_bytes):
+    def _get_output_dir(folder_path: str, save_location: str, subfolder_name: str, date_prefix: str, log: callable) -> str:
+        output_dir = folder_path
+        if save_location == "sub":
+            now = datetime.now()
+            prefix = ""
+            if date_prefix == "datetime":
+                prefix = now.strftime("%Y%m%d_%H%M%S") + "_"
+            elif date_prefix == "date":
+                prefix = now.strftime("%Y%m%d") + "_"
+                
+            folder_name = f"{prefix}{subfolder_name}" if subfolder_name else prefix.rstrip("_")
+            if not folder_name:
+                folder_name = "output"
+                
+            output_dir = os.path.join(folder_path, folder_name)
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                log(f"📂 폴더 생성됨: {output_dir}")
+        return output_dir
+
+    @staticmethod
+    def format_size(size_bytes: int) -> str:
         if size_bytes < 1024:
             return f"{size_bytes}B"
         elif size_bytes < 1024 * 1024:
@@ -59,23 +80,7 @@ class ImageProcessor:
             total_files = len(selected_files)
             base_name = raw_name.replace(" ", separator)
             
-            output_dir = folder_path
-            if save_location == "sub":
-                now = datetime.now()
-                prefix = ""
-                if date_prefix == "datetime":
-                    prefix = now.strftime("%Y%m%d_%H%M%S") + "_"
-                elif date_prefix == "date":
-                    prefix = now.strftime("%Y%m%d") + "_"
-                    
-                folder_name = f"{prefix}{subfolder_name}" if subfolder_name else prefix.rstrip("_")
-                if not folder_name:
-                    folder_name = "output"
-                    
-                output_dir = os.path.join(folder_path, folder_name)
-                if not os.path.exists(output_dir):
-                    os.makedirs(output_dir)
-                    log(f"📂 폴더 생성됨: {output_dir}")
+            output_dir = ImageProcessor._get_output_dir(folder_path, save_location, subfolder_name, date_prefix, log)
 
             success_count = 0
             error_count = 0
@@ -151,23 +156,7 @@ class ImageProcessor:
             total_files = len(selected_files)
             base_name = raw_name.replace(" ", separator)
             
-            output_dir = folder_path
-            if save_location == "sub":
-                now = datetime.now()
-                prefix = ""
-                if date_prefix == "datetime":
-                    prefix = now.strftime("%Y%m%d_%H%M%S") + "_"
-                elif date_prefix == "date":
-                    prefix = now.strftime("%Y%m%d") + "_"
-                    
-                folder_name = f"{prefix}{subfolder_name}" if subfolder_name else prefix.rstrip("_")
-                if not folder_name:
-                    folder_name = "output"
-                    
-                output_dir = os.path.join(folder_path, folder_name)
-                if not os.path.exists(output_dir):
-                    os.makedirs(output_dir)
-                    log(f"📂 폴더 생성됨: {output_dir}")
+            output_dir = ImageProcessor._get_output_dir(folder_path, save_location, subfolder_name, date_prefix, log)
 
             success_count = 0
             error_count = 0
@@ -223,8 +212,11 @@ class ImageProcessor:
 
     @staticmethod
     def create_thumbnail(filepath, rotation, max_size=(550, 550)):
-        img = Image.open(filepath)
-        if rotation != 0:
-            img = img.rotate(rotation, expand=True)
-        img.thumbnail(max_size)
-        return ImageTk.PhotoImage(img)
+        import base64
+        with Image.open(filepath) as img:
+            if rotation != 0:
+                img = img.rotate(rotation, expand=True)
+            img.thumbnail(max_size)
+            buffered = BytesIO()
+            img.save(buffered, format="PNG")
+            return base64.b64encode(buffered.getvalue()).decode("utf-8")
