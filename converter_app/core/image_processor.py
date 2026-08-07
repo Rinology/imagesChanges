@@ -3,7 +3,7 @@ import threading
 from io import BytesIO
 from datetime import datetime
 import send2trash
-from PIL import Image, ImageTk
+from PIL import Image
 import shutil
 
 class ImageProcessor:
