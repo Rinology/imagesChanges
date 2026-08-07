@@ -173,6 +173,9 @@ class LeftPanel(ttk.Frame):
         ttk.Radiobutton(r_sep_frame, text="_ (언더바)", variable=self.rename_separator_var, value="_", command=self.update_rename_preview).pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(r_sep_frame, text="- (하이픈)", variable=self.rename_separator_var, value="-", command=self.update_rename_preview).pack(side=tk.LEFT, padx=5)
         
+        r_hint_label = ttk.Label(self.rename_settings_frame, text="* 띄어쓰기 입력 시 위의 이름 연결 기호로 대체됩니다.", foreground="gray", font=("Consolas", 8))
+        r_hint_label.pack(fill=tk.X, padx=5, pady=(0, 5))
+        
         # Options
         r_opt_frame = ttk.Frame(self.rename_settings_frame)
         r_opt_frame.pack(fill=tk.X, pady=5)
