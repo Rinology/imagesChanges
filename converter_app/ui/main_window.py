@@ -55,12 +55,22 @@ class ImageConverterApp:
         footer_frame = ttk.Frame(self.root)
         footer_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=10, pady=5)
         
-        lbl_github = tk.Label(footer_frame, text="GitHub: https://github.com/rinology", fg="blue", cursor="hand2", font=("Consolas", 9, "underline"))
+        lbl_github = ttk.Label(footer_frame, text="GitHub: https://github.com/rinology", foreground="#00a8ff", cursor="hand2", font=("Consolas", 9, "underline"))
         lbl_github.pack(side=tk.LEFT)
         lbl_github.bind("<Button-1>", lambda e: webbrowser.open_new("https://github.com/rinology"))
         
-        lbl_nickname = tk.Label(footer_frame, text="Made by rinology", fg="gray", font=("Consolas", 9))
+        lbl_nickname = ttk.Label(footer_frame, text="Made by rinology", foreground="gray", font=("Consolas", 9))
         lbl_nickname.pack(side=tk.RIGHT)
+        
+        import sv_ttk
+        def toggle_theme():
+            if sv_ttk.get_theme() == "dark":
+                sv_ttk.set_theme("light")
+            else:
+                sv_ttk.set_theme("dark")
+                
+        btn_theme = ttk.Button(footer_frame, text="🌓 테마 변경", command=toggle_theme)
+        btn_theme.pack(side=tk.RIGHT, padx=15)
 
     def on_folder_select(self, folder):
         self.app_state['image_files'] = []

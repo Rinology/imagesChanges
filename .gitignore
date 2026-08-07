@@ -1,2 +1,12 @@
-#이미지 파일은 제거
-images
+# 이미지 폴더 제거
+images/
+optimized_webp/
+
+# 빌드 및 배포 폴더 제거 (커밋 방지)
+build/
+dist/
+*.spec
+
+# 파이썬 캐시 파일 제거
+__pycache__/
+*.pyc

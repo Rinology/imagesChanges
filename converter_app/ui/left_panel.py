@@ -119,8 +119,8 @@ class LeftPanel(ttk.Frame):
         # Name Preview
         preview_frame = ttk.Frame(self.compress_settings_frame)
         preview_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(preview_frame, text="적용 예시:", foreground="blue").pack(side=tk.LEFT)
-        self.lbl_name_preview = ttk.Label(preview_frame, text="", font=("Consolas", 10, "bold"), foreground="blue")
+        ttk.Label(preview_frame, text="적용 예시:", foreground="#00a8ff").pack(side=tk.LEFT)
+        self.lbl_name_preview = ttk.Label(preview_frame, text="", font=("Consolas", 10, "bold"), foreground="#00a8ff")
         self.lbl_name_preview.pack(side=tk.LEFT, padx=10)
         self.update_name_preview()
         
@@ -193,8 +193,8 @@ class LeftPanel(ttk.Frame):
         # Name Preview
         r_preview_frame = ttk.Frame(self.rename_settings_frame)
         r_preview_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(r_preview_frame, text="적용 예시:", foreground="blue").pack(side=tk.LEFT)
-        self.lbl_rename_preview = ttk.Label(r_preview_frame, text="", font=("Consolas", 10, "bold"), foreground="blue")
+        ttk.Label(r_preview_frame, text="적용 예시:", foreground="#00a8ff").pack(side=tk.LEFT)
+        self.lbl_rename_preview = ttk.Label(r_preview_frame, text="", font=("Consolas", 10, "bold"), foreground="#00a8ff")
         self.lbl_rename_preview.pack(side=tk.LEFT, padx=10)
         self.update_rename_preview()
         
@@ -292,7 +292,7 @@ class LeftPanel(ttk.Frame):
         folder = filedialog.askdirectory(title="이미지가 있는 폴더를 선택하세요")
         if folder:
             self.app_state['selected_folder'] = folder
-            self.lbl_folder_path.config(text=folder, foreground="black")
+            self.lbl_folder_path.config(text=folder, foreground="")
             if 'on_folder_select' in self.callbacks:
                 self.callbacks['on_folder_select'](folder)
 
@@ -386,7 +386,7 @@ class LeftPanel(ttk.Frame):
         self.update_file_count_label()
         
         for i in range(self.listbox.size()):
-            self.listbox.itemconfig(i, background="white", foreground="black")
+            self.listbox.itemconfig(i, background="", foreground="")
             
         for i in current_selection:
             self.listbox.itemconfig(i, background="#0078D7", foreground="white")

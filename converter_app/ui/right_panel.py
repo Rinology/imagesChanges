@@ -15,7 +15,7 @@ class RightPanel(ttk.Frame):
         preview_group = ttk.LabelFrame(self, text="이미지 미리보기", padding=10)
         preview_group.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
         
-        self.lbl_image_preview = tk.Label(preview_group, text="리스트에서 이미지를 선택하면\n여기에 미리보기가 표시됩니다.", bg="lightgray", justify=tk.CENTER)
+        self.lbl_image_preview = ttk.Label(preview_group, text="리스트에서 이미지를 선택하면\n여기에 미리보기가 표시됩니다.", justify=tk.CENTER)
         self.lbl_image_preview.pack(fill=tk.BOTH, expand=True, pady=5)
         
         info_frame = ttk.Frame(preview_group)
@@ -53,13 +53,13 @@ class RightPanel(ttk.Frame):
 
     def update_preview(self, photo, filename=""):
         if photo:
-            self.lbl_image_preview.config(image=photo, text="", bg="SystemButtonFace")
+            self.lbl_image_preview.config(image=photo, text="")
             self.preview_image_ref = photo
             self.btn_rotate.config(state=tk.NORMAL)
             if filename:
                 self.lbl_image_info.config(text=filename)
         else:
-            self.lbl_image_preview.config(image='', text="선택된 이미지가 없거나 불러올 수 없습니다.", bg="lightgray")
+            self.lbl_image_preview.config(image='', text="선택된 이미지가 없거나 불러올 수 없습니다.")
             self.lbl_image_info.config(text=filename)
             self.btn_rotate.config(state=tk.DISABLED)
             self.preview_image_ref = None
