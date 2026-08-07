@@ -12,8 +12,10 @@ class RightPanel(ft.Container):
         self.content = self.build_ui()
 
     def build_ui(self):
+        import base64
+        transparent_1x1_bytes = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
         self.img_preview = ft.Image(
-            src_base64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+            src=transparent_1x1_bytes,
             fit=ft.BoxFit.CONTAIN,
             expand=True,
             tooltip="선택된 이미지 미리보기",
@@ -76,7 +78,8 @@ class RightPanel(ft.Container):
         try:
             rot = self.app_state['rotations'].get(filepath, 0)
             b64_img = ImageProcessor.create_thumbnail(filepath, rot)
-            self.img_preview.src_base64 = b64_img
+            import base64
+            self.img_preview.src = base64.b64decode(b64_img)
             self.btn_rotate.disabled = False
             
             orig_size = os.path.getsize(filepath)
