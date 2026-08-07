@@ -24,7 +24,6 @@ class LeftPanel(ft.Container):
     def build_ui(self):
         # 1. Folder Selection
         self.folder_picker = ft.FilePicker()
-        self.app_page.overlay.append(self.folder_picker)
         
         self.lbl_folder_path = ft.Text("선택된 폴더 없음", color=ft.Colors.ON_SURFACE_VARIANT, expand=True)
         
