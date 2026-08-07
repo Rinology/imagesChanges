@@ -13,7 +13,7 @@ class RightPanel(ft.Container):
 
     def build_ui(self):
         self.img_preview = ft.Image(
-            src=None,
+            src="",
             fit=ft.BoxFit.CONTAIN,
             expand=True,
             tooltip="선택된 이미지 미리보기",
