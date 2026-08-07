@@ -12,28 +12,11 @@ class MainWindow(ft.Container):
             'image_files': [],
             'rotations': {}
         }
-        self.content = self.build_ui()
-        self.app_page.pubsub.subscribe(self.on_pubsub_message)
         
-    def on_pubsub_message(self, msg):
-        if isinstance(msg, tuple) and len(msg) == 3 and msg[0] == "progress":
-            _, current, total = msg
-            self.right_panel.update_progress(current, total)
-    def build_ui(self):
-        self.left_panel = LeftPanel(
-            self.app_page, self.app_state, 
-            on_selection_change=self.on_selection_change,
-            on_log=self.on_log,
-            on_update_preview=self.on_update_preview,
-            on_run=self.on_run,
-            on_file_rotated=self.on_file_rotated
-        )
-        self.right_panel = RightPanel(
-            self.app_page, self.app_state,
-            on_rotate_request=self.left_panel.handle_rotate
-        )
+        self.left_panel = LeftPanel(self.app_page, self.app_state, self)
+        self.right_panel = RightPanel(self.app_page, self.app_state, self)
         
-        return ft.Row(
+        self.content = ft.Row(
             controls=[
                 ft.Container(content=self.left_panel, expand=True, padding=10),
                 ft.VerticalDivider(width=1, color=ft.Colors.OUTLINE),
@@ -42,20 +25,32 @@ class MainWindow(ft.Container):
             expand=True
         )
         
-    def on_selection_change(self, selected_files):
-        self.right_panel.update_selection(selected_files, self.left_panel.preview_size_val, self.left_panel.compression_val)
-
-    def on_log(self, message):
+        self.app_page.pubsub.subscribe(self.on_pubsub_message)
+        
+    def on_pubsub_message(self, msg):
+        if isinstance(msg, tuple) and len(msg) == 3 and msg[0] == "progress":
+            _, current, total = msg
+            self.right_panel.update_progress(current, total)
+            
+    def get_selected_files(self):
+        return self.left_panel.get_selected_files()
+        
+    def get_compression_settings(self):
+        return self.right_panel.get_compression_settings()
+        
+    def get_current_mode(self):
+        return self.right_panel.get_current_mode()
+        
+    def on_selection_change(self):
+        self.left_panel.update_preview()
+        
+    def on_settings_change(self):
+        self.left_panel.update_preview()
+        
+    def set_run_state(self, is_running):
+        self.left_panel.disabled = is_running
+        self.right_panel.set_run_state(is_running)
+        self.app_page.update()
+        
+    def log(self, message):
         self.right_panel.log(message)
-        
-    def on_update_preview(self, selected_files):
-        self.right_panel.update_selection(selected_files, self.left_panel.preview_size_val, self.left_panel.compression_val)
-        
-    def on_run(self, started):
-        if started:
-            self.right_panel.reset_progress()
-        else:
-            self.left_panel.set_run_button_state(False)
-
-    def on_file_rotated(self, filepath):
-        self.right_panel.update_selection_after_rotate()

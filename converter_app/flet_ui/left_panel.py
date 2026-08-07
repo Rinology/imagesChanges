@@ -1,35 +1,30 @@
 import flet as ft
 import os
+import base64
 from converter_app.core.image_processor import ImageProcessor
-from converter_app.flet_ui.rename_dialog import RenameDialog
 
 class LeftPanel(ft.Container):
-    def __init__(self, page, app_state, on_selection_change, on_log, on_update_preview, on_run, on_file_rotated):
+    def __init__(self, page, app_state, main_window):
         super().__init__(expand=True)
         self.app_page = page
         self.app_state = app_state
-        
-        self.on_selection_change = on_selection_change
-        self.on_log = on_log
-        self.on_update_preview = on_update_preview
-        self.on_run = on_run
-        self.on_file_rotated = on_file_rotated
-        
-        # UI State
+        self.main_window = main_window
         self.selected_file_indices = set()
-        self.preview_size_val = False
-        self.compression_val = "6"
-        self.content = self.build_ui()
         
-    def build_ui(self):
-        # 1. Folder Selection
         self.folder_picker = ft.FilePicker()
+        self.app_page.overlay.append(self.folder_picker)
         
+        self.content = self.build_ui()
+        self.current_preview_file = None
+
+    def build_ui(self):
+        # 1. Folder Selection & File List (Top Left)
         self.lbl_folder_path = ft.Text("선택된 폴더 없음", color=ft.Colors.ON_SURFACE_VARIANT, expand=True)
         
         async def on_open_folder(e):
             path = await self.folder_picker.get_directory_path("이미지가 있는 폴더를 선택하세요")
-            self.on_folder_selected(path)
+            if path:
+                self.on_folder_selected(path)
             
         folder_frame = ft.Container(
             content=ft.Row([
@@ -39,7 +34,6 @@ class LeftPanel(ft.Container):
             padding=10, border=ft.Border.all(1, ft.Colors.OUTLINE), border_radius=8
         )
         
-        # 2. File List
         self.lbl_file_count = ft.Text("선택된 파일: 0 / 0개")
         self.file_list_view = ft.ListView(expand=True, spacing=2)
         
@@ -65,167 +59,61 @@ class LeftPanel(ft.Container):
             expand=True, padding=10, border=ft.Border.all(1, ft.Colors.OUTLINE), border_radius=8
         )
         
-        # 3. Settings Tabs
-        self.build_compress_tab()
-        self.build_rename_tab()
-        
-        self.tab_bar = ft.TabBar(
-            tabs=[
-                ft.Tab(label="압축 및 이름변경"),
-                ft.Tab(label="단순 이름변경")
-            ]
+        # 2. Image Preview (Bottom Left)
+        transparent_1x1_bytes = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
+        self.img_preview = ft.Image(
+            src=transparent_1x1_bytes,
+            fit=ft.BoxFit.CONTAIN,
+            expand=True,
+            tooltip="선택된 이미지 미리보기",
+            error_content=ft.Text("이미지 없음", color=ft.Colors.ON_SURFACE_VARIANT)
+        )
+        self.lbl_info = ft.Text("선택된 이미지 없음", expand=True)
+        self.btn_rotate = ft.IconButton(
+            icon=ft.Icons.ROTATE_RIGHT,
+            tooltip="90도 회전",
+            on_click=self.handle_rotate,
+            disabled=True
         )
         
-        self.tab_view = ft.TabBarView(
-            expand=True,
-            controls=[
-                self.tab_compress,
-                self.tab_rename
-            ]
-        )
-        
-        self.tabs = ft.Tabs(
-            length=2,
-            selected_index=0,
-            animation_duration=300,
-            expand=True,
+        preview_frame = ft.Container(
             content=ft.Column([
-                self.tab_bar,
-                self.tab_view
-            ], expand=True)
-        )
-        
-        settings_frame = ft.Container(
-            content=self.tabs,
-            height=280, padding=10, border=ft.Border.all(1, ft.Colors.OUTLINE), border_radius=8
-        )
-        
-        # 4. Run Button
-        self.btn_run = ft.ElevatedButton(
-            "🚀 실행", 
-            style=ft.ButtonStyle(bgcolor=ft.Colors.PRIMARY, color=ft.Colors.ON_PRIMARY, padding=20),
-            on_click=self.start_conversion
+                ft.Text("이미지 미리보기", weight=ft.FontWeight.BOLD),
+                ft.Container(content=self.img_preview, expand=True, alignment=ft.Alignment.CENTER, bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, border_radius=8),
+                ft.Row([self.lbl_info, self.btn_rotate], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+            ]),
+            expand=True, border=ft.Border.all(1, ft.Colors.OUTLINE), border_radius=8, padding=10
         )
         
         return ft.Column([
-            folder_frame,
-            list_frame,
-            settings_frame,
-            ft.Container(content=self.btn_run, alignment=ft.Alignment.CENTER)
+            ft.Container(content=ft.Column([folder_frame, list_frame]), expand=True),
+            preview_frame
         ], expand=True)
         
-    def build_compress_tab(self):
-        self.c_name_input = ft.TextField(label="변경할 이름 (영문)", value="my image", width=200, on_change=self.update_c_preview)
-        self.c_sep_rg = ft.RadioGroup(content=ft.Row([ft.Radio(value="_", label="_ (언더바)"), ft.Radio(value="-", label="- (하이픈)")]), value="_", on_change=self.update_c_preview)
-        self.c_preview_lbl = ft.Text("", color=ft.Colors.BLUE, weight=ft.FontWeight.BOLD)
-        
-        self.c_save_loc = ft.RadioGroup(content=ft.Row([ft.Radio(value="same", label="현재 폴더"), ft.Radio(value="sub", label="하위 폴더")]), value="sub", on_change=self.toggle_c_subfolder)
-        self.c_sub_name = ft.TextField(label="폴더명", value="output", width=120)
-        self.c_date_prefix = ft.Dropdown(options=[ft.dropdown.Option("datetime", "년월일시"), ft.dropdown.Option("date", "년월일"), ft.dropdown.Option("none", "사용안함")], value="datetime", width=120)
-        self.c_sub_row = ft.Row([self.c_sub_name, self.c_date_prefix])
-        
-        self.c_orig = ft.RadioGroup(content=ft.Row([ft.Radio(value="keep", label="유지"), ft.Radio(value="delete", label="삭제")]), value="keep")
-        self.c_comp = ft.Dropdown(options=[ft.dropdown.Option("6", "최대(느림)"), ft.dropdown.Option("4", "일반(적정)"), ft.dropdown.Option("0", "빠름")], value="6", width=150, label="압축 강도", on_select=self.on_comp_change)
-        self.c_preview_size = ft.Switch(label="예상 용량 계산 (느려짐)", value=False, on_change=self.on_comp_change)
-        
-        self.tab_compress = ft.Column([
-            ft.Row([self.c_name_input, ft.Text("이름 연결 기호:"), self.c_sep_rg]),
-            ft.Row([ft.Text("적용 예시:", color=ft.Colors.BLUE), self.c_preview_lbl]),
-            ft.Row([ft.Text("저장 위치:"), self.c_save_loc, self.c_sub_row]),
-            ft.Row([ft.Text("원본 파일:"), self.c_orig, self.c_comp, self.c_preview_size])
-        ], scroll=ft.ScrollMode.AUTO)
-        self.update_c_preview(None)
-        
-    def build_rename_tab(self):
-        self.r_name_input = ft.TextField(label="변경할 이름", value="사진 고양이", width=200, on_change=self.update_r_preview)
-        self.r_sep_rg = ft.RadioGroup(content=ft.Row([ft.Radio(value="_", label="_ (언더바)"), ft.Radio(value="-", label="- (하이픈)")]), value="-", on_change=self.update_r_preview)
-        self.r_preview_lbl = ft.Text("", color=ft.Colors.BLUE, weight=ft.FontWeight.BOLD)
-        
-        self.r_pad = ft.Dropdown(options=[ft.dropdown.Option(x) for x in ["지정안함", "자동", "2자리", "3자리", "4자리", "5자리", "6자리"]], value="자동", width=120, label="숫자 패딩", on_select=self.update_r_preview)
-        self.r_ext = ft.Dropdown(options=[ft.dropdown.Option(x) for x in ["원본 유지", ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"]], value="원본 유지", width=120, label="확장자", on_select=self.update_r_preview)
-        
-        self.r_save_loc = ft.RadioGroup(content=ft.Row([ft.Radio(value="same", label="현재 폴더"), ft.Radio(value="sub", label="하위 폴더")]), value="sub", on_change=self.toggle_r_subfolder)
-        self.r_sub_name = ft.TextField(label="폴더명", value="renamed", width=120)
-        self.r_date_prefix = ft.Dropdown(options=[ft.dropdown.Option("datetime", "년월일시"), ft.dropdown.Option("date", "년월일"), ft.dropdown.Option("none", "사용안함")], value="none", width=120)
-        self.r_sub_row = ft.Row([self.r_sub_name, self.r_date_prefix])
-        
-        self.r_orig = ft.RadioGroup(content=ft.Row([ft.Radio(value="keep", label="유지 (복사)"), ft.Radio(value="delete", label="삭제 (이동)")]), value="keep")
-        
-        self.tab_rename = ft.Column([
-            ft.Row([self.r_name_input, ft.Text("이름 연결 기호:"), self.r_sep_rg]),
-            ft.Row([self.r_pad, self.r_ext]),
-            ft.Row([ft.Text("적용 예시:", color=ft.Colors.BLUE), self.r_preview_lbl]),
-            ft.Row([ft.Text("저장 위치:"), self.r_save_loc, self.r_sub_row]),
-            ft.Row([ft.Text("원본 파일:"), self.r_orig])
-        ], scroll=ft.ScrollMode.AUTO)
-        self.update_r_preview(None)
-
-    def on_comp_change(self, e):
-        self.preview_size_val = self.c_preview_size.value
-        self.compression_val = self.c_comp.value
-        if self.selected_file_indices:
-            self.trigger_selection_event()
-
-    def update_c_preview(self, e):
-        raw_name = self.c_name_input.value.strip()
-        sep = self.c_sep_rg.value
-        processed = raw_name.replace(" ", sep) if raw_name else "이름없음"
-        self.c_preview_lbl.value = f"{processed}{sep}1.webp"
-        self.app_page.update()
-        
-    def toggle_c_subfolder(self, e):
-        self.c_sub_row.visible = (self.c_save_loc.value == "sub")
-        self.app_page.update()
-        
-    def update_r_preview(self, e):
-        raw_name = self.r_name_input.value.strip()
-        sep = self.r_sep_rg.value
-        processed = raw_name.replace(" ", sep) if raw_name else "이름없음"
-        
-        pad_val = self.r_pad.value
-        if pad_val == "지정안함": pad = "1"
-        elif pad_val in ["자동", "2자리"]: pad = "01"
-        elif pad_val == "3자리": pad = "001"
-        elif pad_val == "4자리": pad = "0001"
-        elif pad_val == "5자리": pad = "00001"
-        elif pad_val == "6자리": pad = "000001"
-        else: pad = "1"
-        
-        ext = ".확장자" if self.r_ext.value == "원본 유지" else self.r_ext.value
-        self.r_preview_lbl.value = f"{processed}{sep}{pad}{ext}"
-        self.app_page.update()
-        
-    def toggle_r_subfolder(self, e):
-        self.r_sub_row.visible = (self.r_save_loc.value == "sub")
-        self.app_page.update()
-
     def on_folder_selected(self, path):
         if path:
-            folder = path
-            self.app_state['selected_folder'] = folder
-            self.lbl_folder_path.value = folder
+            self.app_state['selected_folder'] = path
+            self.lbl_folder_path.value = path
             self.lbl_folder_path.color = ft.Colors.ON_SURFACE
             
             self.app_state['image_files'] = []
             self.app_state['rotations'] = {}
             valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')
             
-            for f in os.listdir(folder):
+            for f in os.listdir(path):
                 if f.lower().endswith(valid_extensions):
                     self.app_state['image_files'].append(f)
                     
             self.refresh_listbox()
             self.select_all(None)
-            self.on_log(f"📁 폴더에서 {len(self.app_state['image_files'])}개의 이미지를 불러왔습니다.")
+            self.main_window.log(f"📁 폴더에서 {len(self.app_state['image_files'])}개의 이미지를 불러왔습니다.")
 
     def refresh_listbox(self):
         self.file_list_view.controls.clear()
         for i, f in enumerate(self.app_state['image_files']):
             is_selected = i in self.selected_file_indices
-            
             def make_on_click(idx):
                 return lambda e: self.toggle_selection(idx)
-                
             container = ft.Container(
                 content=ft.Text(f),
                 padding=5,
@@ -242,26 +130,22 @@ class LeftPanel(ft.Container):
         else:
             self.selected_file_indices.add(idx)
         self.refresh_listbox()
-        self.trigger_selection_event()
+        self.main_window.on_selection_change()
         
     def select_all(self, e):
         self.selected_file_indices = set(range(len(self.app_state['image_files'])))
         self.refresh_listbox()
-        self.trigger_selection_event()
+        self.main_window.on_selection_change()
         
     def deselect_all(self, e):
         self.selected_file_indices.clear()
         self.refresh_listbox()
-        self.trigger_selection_event()
+        self.main_window.on_selection_change()
         
     def update_file_count(self):
         total = len(self.app_state['image_files'])
         selected = len(self.selected_file_indices)
         self.lbl_file_count.value = f"선택된 파일: {selected} / {total}개"
-
-    def trigger_selection_event(self):
-        selected_files = [self.app_state['image_files'][i] for i in sorted(self.selected_file_indices)]
-        self.on_selection_change(selected_files)
 
     def get_selected_files(self):
         return [self.app_state['image_files'][i] for i in sorted(self.selected_file_indices)]
@@ -278,7 +162,7 @@ class LeftPanel(ft.Container):
                 new_selection.add(i)
         self.selected_file_indices = new_selection
         self.refresh_listbox()
-        self.trigger_selection_event()
+        self.main_window.on_selection_change()
 
     def move_down(self, e):
         if not self.selected_file_indices: return
@@ -293,7 +177,7 @@ class LeftPanel(ft.Container):
                 new_selection.add(i)
         self.selected_file_indices = new_selection
         self.refresh_listbox()
-        self.trigger_selection_event()
+        self.main_window.on_selection_change()
 
     def remove_from_list(self, e):
         if not self.selected_file_indices: return
@@ -302,10 +186,10 @@ class LeftPanel(ft.Container):
             del self.app_state['image_files'][i]
         self.selected_file_indices.clear()
         self.refresh_listbox()
-        self.trigger_selection_event()
-        self.on_log(f"🗑️ 목록에서 {len(sorted_idx)}개의 파일이 제외되었습니다.")
+        self.main_window.on_selection_change()
+        self.main_window.log(f"🗑️ 목록에서 {len(sorted_idx)}개의 파일이 제외되었습니다.")
 
-    def handle_rotate(self):
+    def handle_rotate(self, e):
         if not self.selected_file_indices: return
         first_idx = sorted(self.selected_file_indices)[0]
         filename = self.app_state['image_files'][first_idx]
@@ -313,113 +197,55 @@ class LeftPanel(ft.Container):
         
         current_rot = self.app_state['rotations'].get(filepath, 0)
         self.app_state['rotations'][filepath] = (current_rot - 90) % 360
-        self.on_file_rotated(filepath)
-
-    def set_run_button_state(self, state):
-        self.btn_run.disabled = not state
-        self.app_page.update()
-
-    def start_conversion(self, e):
-        if not self.app_state.get('selected_folder'):
-            return self.show_snack("먼저 폴더를 선택해주세요.")
-            
+        self.update_preview()
+        
+    def update_preview(self):
         selected_files = self.get_selected_files()
         if not selected_files:
-            return self.show_snack("처리할 이미지를 선택해주세요.")
-
-        tab_idx = self.tabs.selected_index
-        if tab_idx == 0:
-            raw_name = self.c_name_input.value.strip()
-            if not raw_name: return self.show_snack("변경할 영문 이름을 입력해주세요.")
-            
-            settings = {
-                'mode': 'compress',
-                'raw_name': raw_name,
-                'separator': self.c_sep_rg.value,
-                'save_location': self.c_save_loc.value,
-                'subfolder_name': self.c_sub_name.value.strip(),
-                'date_prefix': self.c_date_prefix.value,
-                'delete_orig': self.c_orig.value == "delete",
-                'compression_method': self.c_comp.value,
-            }
-            self.execute_run(selected_files, settings)
-        else:
-            raw_name = self.r_name_input.value.strip()
-            if not raw_name: return self.show_snack("변경할 이름을 입력해주세요.")
-            
-            settings = {
-                'mode': 'rename',
-                'raw_name': raw_name,
-                'separator': self.r_sep_rg.value,
-                'save_location': self.r_save_loc.value,
-                'subfolder_name': self.r_sub_name.value.strip(),
-                'date_prefix': self.r_date_prefix.value,
-                'delete_orig': self.r_orig.value == "delete",
-                'pad_mode': self.r_pad.value,
-                'target_ext': self.r_ext.value
-            }
-            
-            base_name = raw_name.replace(" ", settings['separator'])
-            total_files = len(selected_files)
-            
-            pad_val = settings['pad_mode']
-            if pad_val == "지정안함": pad_length = 1
-            elif pad_val == "자동": pad_length = len(str(total_files))
-            elif pad_val == "2자리": pad_length = 2
-            elif pad_val == "3자리": pad_length = 3
-            elif pad_val == "4자리": pad_length = 4
-            elif pad_val == "5자리": pad_length = 5
-            elif pad_val == "6자리": pad_length = 6
-            else: pad_length = 1
-            
-            new_names = []
-            for i, filename in enumerate(selected_files):
-                idx_str = str(i + 1).zfill(pad_length)
-                ext = os.path.splitext(filename)[1] if settings['target_ext'] == "원본 유지" else settings['target_ext']
-                new_names.append(f"{base_name}{settings['separator']}{idx_str}{ext}")
-                
-            def on_confirm():
-                self.execute_run(selected_files, settings)
-                
-            dialog = RenameDialog(selected_files, new_names, on_confirm)
-            self.app_page.overlay.append(dialog)
-            dialog.open = True
+            self.img_preview.src_base64 = None
+            self.lbl_info.value = "선택된 이미지 없음"
+            self.btn_rotate.disabled = True
+            self.current_preview_file = None
             self.app_page.update()
+            return
 
-    def show_snack(self, message):
-        self.app_page.snack_bar = ft.SnackBar(ft.Text(message))
-        self.app_page.snack_bar.open = True
-        self.app_page.update()
+        first_file = selected_files[0]
+        filepath = os.path.join(self.app_state['selected_folder'], first_file)
+        self.current_preview_file = filepath
 
-    def execute_run(self, selected_files, settings):
-        self.set_run_button_state(False)
-        self.on_run(True)
-        
-        def log_cb(msg):
-            self.on_log(msg)
+        try:
+            rot = self.app_state['rotations'].get(filepath, 0)
+            b64_img = ImageProcessor.create_thumbnail(filepath, rot)
+            self.img_preview.src = base64.b64decode(b64_img)
+            self.btn_rotate.disabled = False
             
-        def progress_cb(current, total):
-            self.app_page.pubsub.send_all(("progress", current, total))
+            orig_size = os.path.getsize(filepath)
+            size_str = ImageProcessor.format_size(orig_size)
             
-        callbacks = {
-            'log': lambda m: self.app_page.run_thread(self.on_log, m),
-            'progress': lambda c, t: self.app_page.run_thread(self.app_page.pubsub.send_all, ("progress", c, t)),
-            'done': lambda s, e, b: self.app_page.run_thread(self.on_run_done)
-        }
-        
-        if settings.get('mode') == 'rename':
-            ImageProcessor.rename_images_async(
-                selected_files, self.app_state['selected_folder'], settings['raw_name'], settings['separator'],
-                settings['save_location'], settings['subfolder_name'], settings['date_prefix'], settings['delete_orig'],
-                callbacks, settings['pad_mode'], settings['target_ext']
-            )
-        else:
-            ImageProcessor.process_images_async(
-                selected_files, self.app_state['selected_folder'], settings['raw_name'], settings['separator'],
-                settings['save_location'], settings['subfolder_name'], settings['date_prefix'], settings['delete_orig'],
-                settings['compression_method'], self.app_state['rotations'], callbacks
-            )
-
-    def on_run_done(self):
-        self.set_run_button_state(True)
-        self.on_run(False)
+            comp_settings = self.main_window.get_compression_settings()
+            preview_size_val = comp_settings.get('preview_size_val', False) if comp_settings else False
+            compression_val = comp_settings.get('compression_method', '6') if comp_settings else '6'
+            
+            if not preview_size_val or self.main_window.get_current_mode() != 'compress':
+                self.lbl_info.value = f"{first_file} ({size_str})"
+                self.app_page.update()
+            else:
+                self.lbl_info.value = f"{first_file} ({size_str}) -> 예상 용량 계산 중..."
+                self.app_page.update()
+                
+                def on_success(expected):
+                    if self.current_preview_file == filepath:
+                        self.lbl_info.value = f"{first_file} ({size_str}) -> 약 {ImageProcessor.format_size(expected)}"
+                        self.app_page.update()
+                def on_error(err):
+                    if self.current_preview_file == filepath:
+                        self.lbl_info.value = f"{first_file} ({size_str}) -> 계산 실패"
+                        self.app_page.update()
+                        
+                ImageProcessor.calculate_expected_size_async(filepath, rot, compression_val, on_success, on_error)
+                
+        except Exception as e:
+            self.img_preview.src_base64 = None
+            self.lbl_info.value = f"{first_file} (미리보기 실패)"
+            self.btn_rotate.disabled = True
+            self.app_page.update()
