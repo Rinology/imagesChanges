@@ -38,8 +38,11 @@ class LeftPanel(ctk.CTkFrame):
         self.btn_clear_list = ctk.CTkButton(folder_frame, text="🗑️ 목록 비우기", command=self.clear_list, width=100, fg_color="transparent", border_width=1, text_color=("black", "white"))
         self.btn_clear_list.grid(row=0, column=1, padx=5, pady=10)
         
+        self.btn_refresh = ctk.CTkButton(folder_frame, text="🔄 새로고침", command=self.refresh_folder, width=100, fg_color="transparent", border_width=1, text_color=("black", "white"))
+        self.btn_refresh.grid(row=0, column=2, padx=5, pady=10)
+        
         self.lbl_folder_path = ctk.CTkLabel(folder_frame, text="선택된 폴더 없음", text_color="gray")
-        self.lbl_folder_path.grid(row=0, column=2, padx=5, pady=10, sticky="w")
+        self.lbl_folder_path.grid(row=0, column=3, padx=5, pady=10, sticky="w")
         
         list_frame = ctk.CTkFrame(self)
         list_frame.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
@@ -137,6 +140,13 @@ class LeftPanel(ctk.CTkFrame):
         self.app_state.update_files("", [])
         self.lbl_folder_path.configure(text="선택된 폴더 없음", text_color="gray")
         self.main_window.log("🗑️ 목록이 비워졌습니다.")
+        
+    def refresh_folder(self):
+        if self.app_state.selected_folder:
+            self.on_folder_selected(self.app_state.selected_folder)
+            self.main_window.log("🔄 목록이 새로고침 되었습니다.")
+        else:
+            self.main_window.log("❌ 먼저 폴더를 선택해주세요.")
         
     def on_folder_selected(self, path):
         valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')

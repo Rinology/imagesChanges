@@ -145,8 +145,8 @@ class RightPanel(ctk.CTkFrame):
         self.c_orig_var = ctk.StringVar(value="keep")
         orig_frame = ctk.CTkFrame(g3, fg_color="transparent")
         orig_frame.grid(row=3, column=1, padx=5, pady=5, sticky="w")
-        ctk.CTkRadioButton(orig_frame, text="유지 (복사)", variable=self.c_orig_var, value="keep").pack(side="left", padx=(0, 10))
-        ctk.CTkRadioButton(orig_frame, text="삭제 (이동)", variable=self.c_orig_var, value="delete").pack(side="left")
+        ctk.CTkRadioButton(orig_frame, text="유지 (원본 파일 보존)", variable=self.c_orig_var, value="keep").pack(side="left", padx=(0, 10))
+        ctk.CTkRadioButton(orig_frame, text="삭제 (휴지통으로 이동)", variable=self.c_orig_var, value="delete").pack(side="left")
         
         # 압축 설정
         ctk.CTkLabel(g3, text="압축 설정:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
@@ -281,8 +281,8 @@ class RightPanel(ctk.CTkFrame):
         self.r_orig_var = ctk.StringVar(value="keep")
         orig_frame = ctk.CTkFrame(g3, fg_color="transparent")
         orig_frame.grid(row=3, column=1, padx=5, pady=5, sticky="w")
-        ctk.CTkRadioButton(orig_frame, text="유지 (복사)", variable=self.r_orig_var, value="keep").pack(side="left", padx=(0, 10))
-        ctk.CTkRadioButton(orig_frame, text="삭제 (이동)", variable=self.r_orig_var, value="delete").pack(side="left")
+        ctk.CTkRadioButton(orig_frame, text="유지 (새 위치로 복사)", variable=self.r_orig_var, value="keep").pack(side="left", padx=(0, 10))
+        ctk.CTkRadioButton(orig_frame, text="삭제 (새 위치로 이동)", variable=self.r_orig_var, value="delete").pack(side="left")
         
         # 완료 후 동작
         ctk.CTkLabel(g3, text="완료 후 동작:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
@@ -388,13 +388,38 @@ class RightPanel(ctk.CTkFrame):
             return
             
         mode = self.get_current_mode()
+        total_files = len(selected_files)
         
         if mode == 'compress':
             settings = self.get_compression_settings()
             if not settings['raw_name']:
                 self.log("❌ 변경할 이름을 입력해주세요.")
                 return
-            self.execute_run(selected_files, settings)
+                
+            base_name = settings['raw_name'].replace(" ", settings['separator'])
+            pad_val = settings['pad_mode']
+            if pad_val == "지정안함": pad_length = 1
+            elif pad_val == "자동": pad_length = len(str(total_files))
+            elif pad_val == "2자리": pad_length = 2
+            elif pad_val == "3자리": pad_length = 3
+            elif pad_val == "4자리": pad_length = 4
+            elif pad_val == "5자리": pad_length = 5
+            elif pad_val == "6자리": pad_length = 6
+            else: pad_length = 1
+            
+            new_names = []
+            for i, filename in enumerate(selected_files):
+                if pad_length > 0:
+                    idx_str = str(i + 1).zfill(pad_length)
+                    new_names.append(f"{base_name}{settings['separator']}{idx_str}.webp")
+                else:
+                    new_names.append(f"{base_name}.webp" if i == 0 else f"{base_name}({i}).webp")
+                    
+            def on_confirm_compress():
+                self.execute_run(selected_files, settings)
+                
+            RenameDialog(self.winfo_toplevel(), selected_files, new_names, on_confirm_compress)
+            
         else:
             settings = self.get_rename_settings()
             if not settings['raw_name']:
@@ -402,7 +427,6 @@ class RightPanel(ctk.CTkFrame):
                 return
                 
             base_name = settings['raw_name'].replace(" ", settings['separator'])
-            total_files = len(selected_files)
             
             pad_val = settings['pad_mode']
             if pad_val == "지정안함": pad_length = 1
@@ -416,14 +440,17 @@ class RightPanel(ctk.CTkFrame):
             
             new_names = []
             for i, filename in enumerate(selected_files):
-                idx_str = str(i + 1).zfill(pad_length)
                 ext = os.path.splitext(filename)[1] if settings['target_ext'] == "원본 유지" else settings['target_ext']
-                new_names.append(f"{base_name}{settings['separator']}{idx_str}{ext}")
+                if pad_length > 0:
+                    idx_str = str(i + 1).zfill(pad_length)
+                    new_names.append(f"{base_name}{settings['separator']}{idx_str}{ext}")
+                else:
+                    new_names.append(f"{base_name}{ext}" if i == 0 else f"{base_name}({i}){ext}")
                 
-            def on_confirm():
+            def on_confirm_rename():
                 self.execute_run(selected_files, settings)
                 
-            RenameDialog(self.winfo_toplevel(), selected_files, new_names, on_confirm)
+            RenameDialog(self.winfo_toplevel(), selected_files, new_names, on_confirm_rename)
             
     def execute_run(self, selected_files, settings):
         self.main_window.set_run_state(True)
