@@ -1,13 +1,22 @@
-import flet as ft
-from converter_app.flet_ui.main_window import MainWindow
+import customtkinter as ctk
+from converter_app.ctk_ui.main_window import MainWindow
 
-def main(page: ft.Page):
-    page.title = "Image Converter"
-    page.window.width = 1000
-    page.window.height = 800
+def main():
+    ctk.set_appearance_mode("System")
+    ctk.set_default_color_theme("blue")
     
-    main_window = MainWindow(page)
-    page.add(main_window)
+    app = ctk.CTk()
+    app.title("Image Converter")
+    app.geometry("1200x900")
+    
+    # Grid configure to make main_window fill the entire app
+    app.grid_rowconfigure(0, weight=1)
+    app.grid_columnconfigure(0, weight=1)
+    
+    main_window = MainWindow(app)
+    main_window.grid(row=0, column=0, sticky="nsew")
+    
+    app.mainloop()
 
 if __name__ == "__main__":
-    ft.run(main)
+    main()
