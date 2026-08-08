@@ -1,4 +1,5 @@
 import os
+import webbrowser
 import customtkinter as ctk
 from converter_app.core.image_processor import ImageProcessor
 from converter_app.ctk_ui.rename_dialog import RenameDialog
@@ -57,8 +58,9 @@ class RightPanel(ctk.CTkFrame):
         self.log_textbox = ctk.CTkTextbox(log_frame, state="disabled")
         self.log_textbox.grid(row=2, column=0, padx=10, pady=5, sticky="nsew")
         
-        credits = ctk.CTkLabel(log_frame, text="Developed by Taerin | GitHub", text_color="blue", cursor="hand2")
+        credits = ctk.CTkLabel(log_frame, text="Developed by Rinology | GitHub", text_color="blue", cursor="hand2")
         credits.grid(row=3, column=0, padx=10, pady=(0, 5), sticky="e")
+        credits.bind("<Button-1>", lambda e: webbrowser.open("https://github.com/Rinology"))
         
     def on_tab_change(self):
         self.main_window.on_settings_change()

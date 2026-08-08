@@ -10,6 +10,13 @@ class RenameDialog(ctk.CTkToplevel):
         self.transient(master)
         self.grab_set()
         
+        self.update_idletasks()
+        width = 600
+        height = 400
+        x = master.winfo_x() + (master.winfo_width() // 2) - (width // 2)
+        y = master.winfo_y() + (master.winfo_height() // 2) - (height // 2)
+        self.geometry(f"{width}x{height}+{x}+{y}")
+        
         self.on_confirm = on_confirm
         
         # Grid layout

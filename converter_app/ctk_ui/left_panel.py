@@ -30,7 +30,7 @@ class LeftPanel(ctk.CTkFrame):
         # 1. Folder Selection & File List
         folder_frame = ctk.CTkFrame(self)
         folder_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-        folder_frame.grid_columnconfigure(1, weight=1)
+        folder_frame.grid_columnconfigure(3, weight=1)
         
         self.btn_open_folder = ctk.CTkButton(folder_frame, text="📂 폴더 열기", command=self.on_open_folder, width=100)
         self.btn_open_folder.grid(row=0, column=0, padx=(10, 5), pady=10)

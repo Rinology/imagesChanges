@@ -162,7 +162,8 @@ class ImageProcessor:
                             log(log_msg)
                             
                             if delete_orig_flag and filepath != new_filepath:
-                                send2trash.send2trash(filepath)
+                                safe_filepath = os.path.normpath(os.path.abspath(filepath))
+                                send2trash.send2trash(safe_filepath)
                                 log(f"   🗑️ 원본이 휴지통으로 이동됨: {filename}")
                                 
                             success_count += 1
