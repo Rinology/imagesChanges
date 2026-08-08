@@ -35,6 +35,7 @@ class MainWindow(ctk.CTkFrame):
         self.left_panel.update_preview()
         
     def on_settings_change(self, *args):
+        self.left_panel.refresh_listbox()
         self.left_panel.update_preview()
         
     def set_run_state(self, is_running):

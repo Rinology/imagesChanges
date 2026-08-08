@@ -7,7 +7,7 @@ def main():
     
     app = ctk.CTk()
     app.title("Image Converter")
-    app.geometry("1200x900")
+    app.geometry("1400x950")
     
     # Grid configure to make main_window fill the entire app
     app.grid_rowconfigure(0, weight=1)

@@ -96,9 +96,50 @@ class LeftPanel(ctk.CTkFrame):
         self.main_window.log(f"📁 폴더에서 {len(self.app_state['image_files'])}개의 이미지를 불러왔습니다.")
         
     def refresh_listbox(self):
+        # Save selection
+        sel = self.listbox.curselection()
+        
         self.listbox.delete(0, tk.END)
-        for f in self.app_state['image_files']:
-            self.listbox.insert(tk.END, f)
+        
+        if not hasattr(self.main_window, 'right_panel'):
+            for f in self.app_state['image_files']:
+                self.listbox.insert(tk.END, f)
+            self.update_file_count()
+            return
+            
+        mode = self.main_window.get_current_mode()
+        if mode == 'compress':
+            settings = self.main_window.get_compression_settings()
+        else:
+            settings = self.main_window.get_rename_settings()
+            
+        raw_name = settings['raw_name'].replace(" ", settings['separator']) if settings['raw_name'] else "이름없음"
+        
+        total_files = len(self.app_state['image_files'])
+        for i, f in enumerate(self.app_state['image_files']):
+            if mode == 'compress':
+                new_f = f"{raw_name}{settings['separator']}{i+1}.webp"
+            else:
+                pad_val = settings.get('pad_mode', '자동')
+                if pad_val == "지정안함": pad_length = 1
+                elif pad_val == "자동": pad_length = len(str(total_files)) if total_files > 0 else 1
+                elif pad_val == "2자리": pad_length = 2
+                elif pad_val == "3자리": pad_length = 3
+                elif pad_val == "4자리": pad_length = 4
+                elif pad_val == "5자리": pad_length = 5
+                elif pad_val == "6자리": pad_length = 6
+                else: pad_length = 1
+                
+                idx_str = str(i + 1).zfill(pad_length)
+                ext = os.path.splitext(f)[1] if settings['target_ext'] == "원본 유지" else settings['target_ext']
+                new_f = f"{raw_name}{settings['separator']}{idx_str}{ext}"
+                
+            self.listbox.insert(tk.END, f"{f}  ➔  {new_f}")
+            
+        # Restore selection
+        for i in sel:
+            self.listbox.select_set(i)
+            
         self.update_file_count()
         
     def select_all(self):

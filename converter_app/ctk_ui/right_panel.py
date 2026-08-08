@@ -80,6 +80,8 @@ class RightPanel(ctk.CTkFrame):
         ctk.CTkRadioButton(sep_frame, text="_ (언더바)", variable=self.c_sep_var, value="_", command=self.update_c_preview).pack(side="left", padx=5)
         ctk.CTkRadioButton(sep_frame, text="- (하이픈)", variable=self.c_sep_var, value="-", command=self.update_c_preview).pack(side="left", padx=5)
         
+        ctk.CTkLabel(parent, text="(띄어쓰기는 연결 기호로 변환됨)", text_color="gray", font=ctk.CTkFont(size=11)).grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        
         # Row 1: Preview
         ctk.CTkLabel(parent, text="적용 예시:", text_color="blue").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.c_preview_lbl = ctk.CTkLabel(parent, text="", text_color="blue", font=ctk.CTkFont(weight="bold"))
@@ -103,6 +105,7 @@ class RightPanel(ctk.CTkFrame):
         self.c_date_prefix = ctk.CTkOptionMenu(self.c_sub_row, values=["datetime", "date", "none"], width=100)
         self.c_date_prefix.set("datetime")
         self.c_date_prefix.pack(side="left", padx=5)
+        ctk.CTkLabel(self.c_sub_row, text="(datetime: 20260808_123000, date: 20260808)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
         # Row 4: Original File
         ctk.CTkLabel(parent, text="원본 파일:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
@@ -120,6 +123,7 @@ class RightPanel(ctk.CTkFrame):
         self.c_comp = ctk.CTkOptionMenu(comp_frame, values=["6", "4", "0"], width=80, command=lambda e: self.main_window.on_settings_change())
         self.c_comp.set("6")
         self.c_comp.pack(side="left", padx=5)
+        ctk.CTkLabel(comp_frame, text="(0~6 지정, 6이 최고 압축률)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=2)
         self.c_preview_size_var = ctk.BooleanVar(value=False)
         self.c_preview_size = ctk.CTkSwitch(comp_frame, text="예상 용량 계산 (느려짐)", variable=self.c_preview_size_var, command=lambda: self.main_window.on_settings_change())
         self.c_preview_size.pack(side="left", padx=15)
@@ -137,6 +141,7 @@ class RightPanel(ctk.CTkFrame):
         sep = self.c_sep_var.get()
         processed = raw_name.replace(" ", sep) if raw_name else "이름없음"
         self.c_preview_lbl.configure(text=f"{processed}{sep}1.webp")
+        self.main_window.on_settings_change()
         
     def build_rename_tab(self):
         parent = self.tab_rename
@@ -155,6 +160,8 @@ class RightPanel(ctk.CTkFrame):
         ctk.CTkRadioButton(sep_frame, text="_ (언더바)", variable=self.r_sep_var, value="_", command=self.update_r_preview).pack(side="left", padx=5)
         ctk.CTkRadioButton(sep_frame, text="- (하이픈)", variable=self.r_sep_var, value="-", command=self.update_r_preview).pack(side="left", padx=5)
         
+        ctk.CTkLabel(parent, text="(띄어쓰기는 연결 기호로 변환됨)", text_color="gray", font=ctk.CTkFont(size=11)).grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        
         # Row 1: Pad & Ext
         pad_ext_frame = ctk.CTkFrame(parent, fg_color="transparent")
         pad_ext_frame.grid(row=1, column=1, columnspan=2, padx=5, pady=5, sticky="w")
@@ -163,11 +170,13 @@ class RightPanel(ctk.CTkFrame):
         self.r_pad = ctk.CTkOptionMenu(pad_ext_frame, values=["지정안함", "자동", "2자리", "3자리", "4자리", "5자리", "6자리"], width=100, command=self.update_r_preview)
         self.r_pad.set("자동")
         self.r_pad.pack(side="left", padx=5)
+        ctk.CTkLabel(pad_ext_frame, text="(예: 3자리 선택 시 001, 002...)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=2)
         
         ctk.CTkLabel(pad_ext_frame, text="확장자:").pack(side="left", padx=(15, 5))
         self.r_ext = ctk.CTkOptionMenu(pad_ext_frame, values=["원본 유지", ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"], width=100, command=self.update_r_preview)
         self.r_ext.set("원본 유지")
         self.r_ext.pack(side="left", padx=5)
+        ctk.CTkLabel(pad_ext_frame, text="(원본의 확장자가 강제 변경됩니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=2)
         
         # Row 2: Preview
         ctk.CTkLabel(parent, text="적용 예시:", text_color="blue").grid(row=2, column=0, padx=5, pady=5, sticky="w")
@@ -192,6 +201,7 @@ class RightPanel(ctk.CTkFrame):
         self.r_date_prefix = ctk.CTkOptionMenu(self.r_sub_row, values=["datetime", "date", "none"], width=100)
         self.r_date_prefix.set("none")
         self.r_date_prefix.pack(side="left", padx=5)
+        ctk.CTkLabel(self.r_sub_row, text="(선택 시 날짜가 폴더명 앞에 붙습니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
         # Row 5: Original File
         ctk.CTkLabel(parent, text="원본 파일:").grid(row=5, column=0, padx=5, pady=5, sticky="w")
@@ -225,6 +235,7 @@ class RightPanel(ctk.CTkFrame):
         
         ext = ".확장자" if self.r_ext.get() == "원본 유지" else self.r_ext.get()
         self.r_preview_lbl.configure(text=f"{processed}{sep}{pad}{ext}")
+        self.main_window.on_settings_change()
         
     def get_current_mode(self):
         return "compress" if self.tabview.get() == "압축 및 이름변경" else "rename"
