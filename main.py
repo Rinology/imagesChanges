@@ -7,7 +7,7 @@ def main():
     
     app = ctk.CTk()
     app.title("Image Converter")
-    app.geometry("1400x950")
+    app.geometry("1600x950")
     
     # Grid configure to make main_window fill the entire app
     app.grid_rowconfigure(0, weight=1)
@@ -18,5 +18,8 @@ def main():
     
     app.mainloop()
 
+import multiprocessing
+
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     main()

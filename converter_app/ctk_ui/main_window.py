@@ -2,15 +2,13 @@ import customtkinter as ctk
 from converter_app.ctk_ui.left_panel import LeftPanel
 from converter_app.ctk_ui.right_panel import RightPanel
 
+from converter_app.core.app_state import AppState
+
 class MainWindow(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         
-        self.app_state = {
-            'selected_folder': "",
-            'image_files': [],
-            'rotations': {}
-        }
+        self.app_state = AppState()
         
         self.grid_columnconfigure(0, weight=1, uniform="group1")
         self.grid_columnconfigure(1, weight=1, uniform="group1")
@@ -27,6 +25,9 @@ class MainWindow(ctk.CTkFrame):
         
     def get_compression_settings(self):
         return self.right_panel.get_compression_settings()
+        
+    def get_rename_settings(self):
+        return self.right_panel.get_rename_settings()
         
     def get_current_mode(self):
         return self.right_panel.get_current_mode()

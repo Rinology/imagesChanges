@@ -5,6 +5,34 @@ from datetime import datetime
 import send2trash
 from PIL import Image
 import shutil
+import concurrent.futures
+from converter_app.utils.naming_utils import get_pad_length
+
+def _process_single_image(args):
+    filepath, new_filepath, rot, method_val = args
+    try:
+        orig_size = os.path.getsize(filepath)
+        
+        with Image.open(filepath) as img:
+            if rot != 0:
+                img = img.rotate(rot, expand=True)
+            if img.mode in ("RGBA", "LA", "P") or (img.mode == "RGB" and "transparency" in img.info):
+                img = img.convert("RGBA")
+                has_alpha = img.getchannel("A").getextrema()[0] < 255
+            else:
+                has_alpha = False
+            
+            if has_alpha:
+                img.save(new_filepath, "webp", lossless=True, method=method_val)
+            else:
+                img.save(new_filepath, "webp", quality=80, method=method_val)
+        
+        new_size = os.path.getsize(new_filepath)
+        size_diff = orig_size - new_size
+        return (True, orig_size, new_size, size_diff, None)
+    except Exception as e:
+        return (False, 0, 0, 0, str(e))
+
 
 class ImageProcessor:
     @staticmethod
@@ -65,7 +93,7 @@ class ImageProcessor:
         threading.Thread(target=calc, daemon=True).start()
 
     @staticmethod
-    def process_images_async(selected_files, folder_path, raw_name, separator, save_location, subfolder_name, date_prefix, delete_orig, compression_method, rotations, callbacks):
+    def process_images_async(selected_files, folder_path, raw_name, separator, save_location, subfolder_name, date_prefix, delete_orig, compression_method, rotations, callbacks, pad_mode="자동"):
         """
         callbacks: dict with keys 'log', 'progress', 'done'
         selected_files: list of filenames to process
@@ -76,7 +104,7 @@ class ImageProcessor:
             progress_cb = callbacks.get('progress', lambda p, t: None)
             done_cb = callbacks.get('done', lambda s, e, b: None)
             
-            log("🚀 변환 작업을 시작합니다...")
+            log("🚀 변환 작업을 시작합니다... (멀티프로세싱 활성화됨)")
             total_files = len(selected_files)
             base_name = raw_name.replace(" ", separator)
             
@@ -86,50 +114,67 @@ class ImageProcessor:
             error_count = 0
             total_saved_bytes = 0
             
+            pad_length = get_pad_length(pad_mode, total_files)
+            method_val = int(compression_method)
+            
+            tasks = []
+            
             for i, filename in enumerate(selected_files):
                 idx = i + 1
                 filepath = os.path.join(folder_path, filename)
-                new_filename = f"{base_name}{separator}{idx}.webp"
+                
+                if pad_length == 0:
+                    new_filename = f"{base_name}.webp"
+                else:
+                    idx_str = str(idx).zfill(pad_length)
+                    new_filename = f"{base_name}{separator}{idx_str}.webp"
+                    
                 new_filepath = os.path.join(output_dir, new_filename)
                 
-                try:
-                    orig_size = os.path.getsize(filepath)
-                    
-                    with Image.open(filepath) as img:
-                        rot = rotations.get(filepath, 0)
-                        if rot != 0:
-                            img = img.rotate(rot, expand=True)
-                        if img.mode in ("RGBA", "LA", "P") or (img.mode == "RGB" and "transparency" in img.info):
-                            img = img.convert("RGBA")
-                            has_alpha = img.getchannel("A").getextrema()[0] < 255
+                # Check for duplicates if pad_length is 0 and there are multiple files
+                if pad_length == 0 and total_files > 1 and i > 0:
+                    new_filename = f"{base_name}({i}).webp"
+                    new_filepath = os.path.join(output_dir, new_filename)
+                
+                rot = rotations.get(filepath, 0)
+                
+                tasks.append((filepath, new_filepath, rot, method_val, delete_orig, filename, idx, new_filename))
+
+            completed = 0
+            
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                # Submit all tasks
+                future_to_task = {
+                    executor.submit(_process_single_image, (t[0], t[1], t[2], t[3])): t for t in tasks
+                }
+                
+                for future in concurrent.futures.as_completed(future_to_task):
+                    t = future_to_task[future]
+                    filepath, new_filepath, rot, method_val, delete_orig_flag, filename, idx, new_filename = t
+                    try:
+                        success, orig_size, new_size, size_diff, err = future.result()
+                        if success:
+                            if size_diff > 0:
+                                total_saved_bytes += size_diff
+                            
+                            log_msg = f"✅ [{idx}/{total_files}] {filename} -> {new_filename} "
+                            log_msg += f"(용량: {ImageProcessor.format_size(orig_size)} -> {ImageProcessor.format_size(new_size)})"
+                            log(log_msg)
+                            
+                            if delete_orig_flag and filepath != new_filepath:
+                                send2trash.send2trash(filepath)
+                                log(f"   🗑️ 원본이 휴지통으로 이동됨: {filename}")
+                                
+                            success_count += 1
                         else:
-                            has_alpha = False
+                            log(f"❌ [에러] {filename} 변환 실패: {err}")
+                            error_count += 1
+                    except Exception as e:
+                        log(f"❌ [에러] {filename} 변환 실패 (크래시): {e}")
+                        error_count += 1
                         
-                        method_val = int(compression_method)
-                        if has_alpha:
-                            img.save(new_filepath, "webp", lossless=True, method=method_val)
-                        else:
-                            img.save(new_filepath, "webp", quality=80, method=method_val)
-                    
-                    new_size = os.path.getsize(new_filepath)
-                    size_diff = orig_size - new_size
-                    if size_diff > 0:
-                        total_saved_bytes += size_diff
-                    
-                    log_msg = f"✅ [{idx}/{total_files}] {filename} -> {new_filename} "
-                    log_msg += f"(용량: {ImageProcessor.format_size(orig_size)} -> {ImageProcessor.format_size(new_size)})"
-                    log(log_msg)
-                    
-                    if delete_orig and filepath != new_filepath:
-                        send2trash.send2trash(filepath)
-                        log(f"   🗑️ 원본이 휴지통으로 이동됨: {filename}")
-                        
-                    success_count += 1
-                except Exception as e:
-                    log(f"❌ [에러] {filename} 변환 실패: {e}")
-                    error_count += 1
-                    
-                progress_cb(idx, total_files)
+                    completed += 1
+                    progress_cb(completed, total_files)
                     
             log(f"🎉 작업 완료! (성공: {success_count}, 에러: {error_count})")
             if total_saved_bytes > 0:
@@ -161,14 +206,7 @@ class ImageProcessor:
             success_count = 0
             error_count = 0
             
-            if pad_mode == "지정안함": pad_length = 1
-            elif pad_mode == "자동": pad_length = len(str(total_files))
-            elif pad_mode == "2자리": pad_length = 2
-            elif pad_mode == "3자리": pad_length = 3
-            elif pad_mode == "4자리": pad_length = 4
-            elif pad_mode == "5자리": pad_length = 5
-            elif pad_mode == "6자리": pad_length = 6
-            else: pad_length = 1
+            pad_length = get_pad_length(pad_mode, total_files)
 
             for i, filename in enumerate(selected_files):
                 idx = i + 1
@@ -177,10 +215,18 @@ class ImageProcessor:
                     ext = os.path.splitext(filename)[1]
                 else:
                     ext = target_ext
-                idx_str = str(idx).zfill(pad_length)
                 
-                new_filename = f"{base_name}{separator}{idx_str}{ext}"
+                if pad_length == 0:
+                    new_filename = f"{base_name}{ext}"
+                else:
+                    idx_str = str(idx).zfill(pad_length)
+                    new_filename = f"{base_name}{separator}{idx_str}{ext}"
+                    
                 new_filepath = os.path.join(output_dir, new_filename)
+                
+                if pad_length == 0 and total_files > 1 and i > 0:
+                    new_filename = f"{base_name}({i}){ext}"
+                    new_filepath = os.path.join(output_dir, new_filename)
                 
                 try:
                     if os.path.abspath(filepath) == os.path.abspath(new_filepath):

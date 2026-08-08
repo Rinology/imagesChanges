@@ -65,68 +65,100 @@ class RightPanel(ctk.CTkFrame):
         
     def build_compress_tab(self):
         parent = self.tab_compress
-        parent.grid_columnconfigure(1, weight=1)
+        parent.grid_columnconfigure(0, weight=1)
         
-        # Row 0: Name input & separator
-        ctk.CTkLabel(parent, text="변경할 이름:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.c_name_input = ctk.CTkEntry(parent, width=150)
+        # Group 1: Name Settings
+        g1 = ctk.CTkFrame(parent)
+        g1.grid(row=0, column=0, padx=5, pady=5, sticky="we")
+        g1.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(g1, text="[ 이름 설정 ]", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+        
+        # 변경할 이름
+        ctk.CTkLabel(g1, text="변경할 이름:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        name_frame = ctk.CTkFrame(g1, fg_color="transparent")
+        name_frame.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        self.c_name_input = ctk.CTkEntry(name_frame, width=150)
         self.c_name_input.insert(0, "my image")
-        self.c_name_input.grid(row=0, column=1, padx=5, pady=5, sticky="we")
+        self.c_name_input.pack(side="left", padx=(0, 5))
         self.c_name_input.bind("<KeyRelease>", self.update_c_preview)
         
+        # 이름 연결 기호
+        ctk.CTkLabel(g1, text="이름 연결 기호:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        sep_frame = ctk.CTkFrame(g1, fg_color="transparent")
+        sep_frame.grid(row=2, column=1, padx=5, pady=5, sticky="w")
         self.c_sep_var = ctk.StringVar(value="_")
-        sep_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        sep_frame.grid(row=0, column=2, padx=5, pady=5, sticky="w")
-        ctk.CTkRadioButton(sep_frame, text="_ (언더바)", variable=self.c_sep_var, value="_", command=self.update_c_preview).pack(side="left", padx=5)
-        ctk.CTkRadioButton(sep_frame, text="- (하이픈)", variable=self.c_sep_var, value="-", command=self.update_c_preview).pack(side="left", padx=5)
+        ctk.CTkRadioButton(sep_frame, text="_(언더바)", variable=self.c_sep_var, value="_", command=self.update_c_preview).pack(side="left", padx=(0, 5))
+        ctk.CTkRadioButton(sep_frame, text="-(하이픈)", variable=self.c_sep_var, value="-", command=self.update_c_preview).pack(side="left", padx=5)
         
-        ctk.CTkLabel(parent, text="(띄어쓰기는 연결 기호로 변환됨)", text_color="gray", font=ctk.CTkFont(size=11)).grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        # 숫자 패딩
+        ctk.CTkLabel(g1, text="숫자 패딩:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        pad_frame = ctk.CTkFrame(g1, fg_color="transparent")
+        pad_frame.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        self.c_pad = ctk.CTkOptionMenu(pad_frame, values=["적용안함", "자동", "2자리", "3자리", "4자리", "5자리", "6자리"], width=100, command=self.update_c_preview)
+        self.c_pad.set("자동")
+        self.c_pad.pack(side="left")
+        ctk.CTkLabel(pad_frame, text="(예: 3자리 선택 시 001, 002...)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
+
+        # 확장자
+        ctk.CTkLabel(g1, text="확장자:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        ext_frame = ctk.CTkFrame(g1, fg_color="transparent")
+        ext_frame.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+        self.c_ext = ctk.CTkOptionMenu(ext_frame, values=[".webp"], width=100, state="disabled")
+        self.c_ext.set(".webp")
+        self.c_ext.pack(side="left")
+        ctk.CTkLabel(ext_frame, text="(압축 시 .webp로 고정됩니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
+
+        # Group 2: Preview
+        g2 = ctk.CTkFrame(parent)
+        g2.grid(row=1, column=0, padx=5, pady=5, sticky="we")
+        g2.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(g2, text="적용 예시:", text_color="blue", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.c_preview_lbl = ctk.CTkLabel(g2, text="", text_color="blue", font=ctk.CTkFont(weight="bold", size=14))
+        self.c_preview_lbl.grid(row=0, column=1, padx=10, pady=10, sticky="w")
         
-        # Row 1: Preview
-        ctk.CTkLabel(parent, text="적용 예시:", text_color="blue").grid(row=1, column=0, padx=5, pady=5, sticky="w")
-        self.c_preview_lbl = ctk.CTkLabel(parent, text="", text_color="blue", font=ctk.CTkFont(weight="bold"))
-        self.c_preview_lbl.grid(row=1, column=1, columnspan=2, padx=5, pady=5, sticky="w")
+        # Group 3: Process Settings
+        g3 = ctk.CTkFrame(parent)
+        g3.grid(row=2, column=0, padx=5, pady=5, sticky="we")
+        g3.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(g3, text="[ 변환 설정 ]", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="w")
         
-        # Row 2: Save Location
-        ctk.CTkLabel(parent, text="저장 위치:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        # 저장 위치
+        ctk.CTkLabel(g3, text="저장 위치:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.c_save_loc_var = ctk.StringVar(value="sub")
-        loc_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        loc_frame.grid(row=2, column=1, columnspan=2, padx=5, pady=5, sticky="w")
-        ctk.CTkRadioButton(loc_frame, text="현재 폴더", variable=self.c_save_loc_var, value="same", command=self.toggle_c_subfolder).pack(side="left", padx=5)
-        ctk.CTkRadioButton(loc_frame, text="하위 폴더", variable=self.c_save_loc_var, value="sub", command=self.toggle_c_subfolder).pack(side="left", padx=10)
+        loc_frame = ctk.CTkFrame(g3, fg_color="transparent")
+        loc_frame.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        ctk.CTkRadioButton(loc_frame, text="현재 폴더", variable=self.c_save_loc_var, value="same", command=self.toggle_c_subfolder).pack(side="left", padx=(0, 10))
+        ctk.CTkRadioButton(loc_frame, text="하위 폴더", variable=self.c_save_loc_var, value="sub", command=self.toggle_c_subfolder).pack(side="left")
         
-        # Row 3: Subfolder settings (conditionally shown)
-        self.c_sub_row = ctk.CTkFrame(parent, fg_color="transparent")
-        self.c_sub_row.grid(row=3, column=1, columnspan=2, padx=5, pady=5, sticky="w")
-        ctk.CTkLabel(self.c_sub_row, text="└─ 폴더명:").pack(side="left", padx=(5, 5))
+        self.c_sub_row = ctk.CTkFrame(g3, fg_color="transparent")
+        self.c_sub_row.grid(row=2, column=1, padx=5, pady=0, sticky="w")
+        ctk.CTkLabel(self.c_sub_row, text="└─ 폴더명:").pack(side="left", padx=(0, 5))
         self.c_sub_name = ctk.CTkEntry(self.c_sub_row, width=120)
         self.c_sub_name.insert(0, "output")
         self.c_sub_name.pack(side="left", padx=5)
         self.c_date_prefix = ctk.CTkOptionMenu(self.c_sub_row, values=["datetime", "date", "none"], width=100)
         self.c_date_prefix.set("datetime")
         self.c_date_prefix.pack(side="left", padx=5)
-        ctk.CTkLabel(self.c_sub_row, text="(datetime: 20260808_123000, date: 20260808)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
-        # Row 4: Original File
-        ctk.CTkLabel(parent, text="원본 파일:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        # 원본 파일
+        ctk.CTkLabel(g3, text="원본 파일:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
         self.c_orig_var = ctk.StringVar(value="keep")
-        orig_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        orig_frame.grid(row=4, column=1, columnspan=2, padx=5, pady=5, sticky="w")
-        ctk.CTkRadioButton(orig_frame, text="유지 (복사)", variable=self.c_orig_var, value="keep").pack(side="left", padx=5)
-        ctk.CTkRadioButton(orig_frame, text="삭제 (이동)", variable=self.c_orig_var, value="delete").pack(side="left", padx=10)
+        orig_frame = ctk.CTkFrame(g3, fg_color="transparent")
+        orig_frame.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        ctk.CTkRadioButton(orig_frame, text="유지 (복사)", variable=self.c_orig_var, value="keep").pack(side="left", padx=(0, 10))
+        ctk.CTkRadioButton(orig_frame, text="삭제 (이동)", variable=self.c_orig_var, value="delete").pack(side="left")
         
-        # Row 5: Compression settings
-        ctk.CTkLabel(parent, text="압축 설정:").grid(row=5, column=0, padx=5, pady=5, sticky="w")
-        comp_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        comp_frame.grid(row=5, column=1, columnspan=2, padx=5, pady=5, sticky="w")
+        # 압축 설정
+        ctk.CTkLabel(g3, text="압축 설정:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        comp_frame = ctk.CTkFrame(g3, fg_color="transparent")
+        comp_frame.grid(row=4, column=1, padx=5, pady=5, sticky="w")
         ctk.CTkLabel(comp_frame, text="압축 강도:").pack(side="left")
-        self.c_comp = ctk.CTkOptionMenu(comp_frame, values=["6", "4", "0"], width=80, command=lambda e: self.main_window.on_settings_change())
+        self.c_comp = ctk.CTkOptionMenu(comp_frame, values=["6", "4", "0"], width=60, command=lambda e: self.main_window.on_settings_change())
         self.c_comp.set("6")
         self.c_comp.pack(side="left", padx=5)
-        ctk.CTkLabel(comp_frame, text="(0~6 지정, 6이 최고 압축률)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=2)
         self.c_preview_size_var = ctk.BooleanVar(value=False)
         self.c_preview_size = ctk.CTkSwitch(comp_frame, text="예상 용량 계산 (느려짐)", variable=self.c_preview_size_var, command=lambda: self.main_window.on_settings_change())
-        self.c_preview_size.pack(side="left", padx=15)
+        self.c_preview_size.pack(side="left", padx=(10, 0))
         
         self.update_c_preview()
         
@@ -140,76 +172,107 @@ class RightPanel(ctk.CTkFrame):
         raw_name = self.c_name_input.get().strip()
         sep = self.c_sep_var.get()
         processed = raw_name.replace(" ", sep) if raw_name else "이름없음"
-        self.c_preview_lbl.configure(text=f"{processed}{sep}1.webp")
+        
+        total_files = len(self.app_state.image_files)
+        pad_val = self.c_pad.get()
+        if pad_val == "적용안함": pad = ""
+        elif pad_val == "자동": 
+            pad_len = len(str(total_files)) if total_files > 0 else 1
+            pad = "1".zfill(pad_len)
+        elif pad_val == "2자리": pad = "01"
+        elif pad_val == "3자리": pad = "001"
+        elif pad_val == "4자리": pad = "0001"
+        elif pad_val == "5자리": pad = "00001"
+        elif pad_val == "6자리": pad = "000001"
+        else: pad = "1"
+        
+        self.c_preview_lbl.configure(text=f"{processed}{sep}{pad}.webp" if pad else f"{processed}.webp")
         self.main_window.on_settings_change()
         
     def build_rename_tab(self):
         parent = self.tab_rename
-        parent.grid_columnconfigure(1, weight=1)
+        parent.grid_columnconfigure(0, weight=1)
         
-        # Row 0: Name input & separator
-        ctk.CTkLabel(parent, text="변경할 이름:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.r_name_input = ctk.CTkEntry(parent, width=150)
+        # Group 1: Name Settings
+        g1 = ctk.CTkFrame(parent)
+        g1.grid(row=0, column=0, padx=5, pady=5, sticky="we")
+        g1.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(g1, text="[ 이름 설정 ]", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+        
+        # 변경할 이름
+        ctk.CTkLabel(g1, text="변경할 이름:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        name_frame = ctk.CTkFrame(g1, fg_color="transparent")
+        name_frame.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        self.r_name_input = ctk.CTkEntry(name_frame, width=150)
         self.r_name_input.insert(0, "사진 고양이")
-        self.r_name_input.grid(row=0, column=1, padx=5, pady=5, sticky="we")
+        self.r_name_input.pack(side="left", padx=(0, 5))
         self.r_name_input.bind("<KeyRelease>", self.update_r_preview)
         
+        # 이름 연결 기호
+        ctk.CTkLabel(g1, text="이름 연결 기호:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        sep_frame = ctk.CTkFrame(g1, fg_color="transparent")
+        sep_frame.grid(row=2, column=1, padx=5, pady=5, sticky="w")
         self.r_sep_var = ctk.StringVar(value="-")
-        sep_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        sep_frame.grid(row=0, column=2, padx=5, pady=5, sticky="w")
-        ctk.CTkRadioButton(sep_frame, text="_ (언더바)", variable=self.r_sep_var, value="_", command=self.update_r_preview).pack(side="left", padx=5)
-        ctk.CTkRadioButton(sep_frame, text="- (하이픈)", variable=self.r_sep_var, value="-", command=self.update_r_preview).pack(side="left", padx=5)
+        ctk.CTkRadioButton(sep_frame, text="_(언더바)", variable=self.r_sep_var, value="_", command=self.update_r_preview).pack(side="left", padx=(0, 5))
+        ctk.CTkRadioButton(sep_frame, text="-(하이픈)", variable=self.r_sep_var, value="-", command=self.update_r_preview).pack(side="left", padx=5)
         
-        ctk.CTkLabel(parent, text="(띄어쓰기는 연결 기호로 변환됨)", text_color="gray", font=ctk.CTkFont(size=11)).grid(row=0, column=3, padx=5, pady=5, sticky="w")
-        
-        # Row 1: Pad & Ext
-        pad_ext_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        pad_ext_frame.grid(row=1, column=1, columnspan=2, padx=5, pady=5, sticky="w")
-        
-        ctk.CTkLabel(pad_ext_frame, text="숫자 패딩:").pack(side="left")
-        self.r_pad = ctk.CTkOptionMenu(pad_ext_frame, values=["지정안함", "자동", "2자리", "3자리", "4자리", "5자리", "6자리"], width=100, command=self.update_r_preview)
+        # 숫자 패딩
+        ctk.CTkLabel(g1, text="숫자 패딩:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        pad_frame = ctk.CTkFrame(g1, fg_color="transparent")
+        pad_frame.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        self.r_pad = ctk.CTkOptionMenu(pad_frame, values=["적용안함", "자동", "2자리", "3자리", "4자리", "5자리", "6자리"], width=100, command=self.update_r_preview)
         self.r_pad.set("자동")
-        self.r_pad.pack(side="left", padx=5)
-        ctk.CTkLabel(pad_ext_frame, text="(예: 3자리 선택 시 001, 002...)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=2)
+        self.r_pad.pack(side="left")
+        ctk.CTkLabel(pad_frame, text="(예: 3자리 선택 시 001, 002...)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
-        ctk.CTkLabel(pad_ext_frame, text="확장자:").pack(side="left", padx=(15, 5))
-        self.r_ext = ctk.CTkOptionMenu(pad_ext_frame, values=["원본 유지", ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"], width=100, command=self.update_r_preview)
+        # 확장자
+        ctk.CTkLabel(g1, text="확장자:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        ext_frame = ctk.CTkFrame(g1, fg_color="transparent")
+        ext_frame.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+        self.r_ext = ctk.CTkOptionMenu(ext_frame, values=["원본 유지", ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"], width=100, command=self.update_r_preview)
         self.r_ext.set("원본 유지")
-        self.r_ext.pack(side="left", padx=5)
-        ctk.CTkLabel(pad_ext_frame, text="(원본의 확장자가 강제 변경됩니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=2)
+        self.r_ext.pack(side="left")
+        ctk.CTkLabel(ext_frame, text="(원본의 확장자가 강제 변경됩니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
-        # Row 2: Preview
-        ctk.CTkLabel(parent, text="적용 예시:", text_color="blue").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        self.r_preview_lbl = ctk.CTkLabel(parent, text="", text_color="blue", font=ctk.CTkFont(weight="bold"))
-        self.r_preview_lbl.grid(row=2, column=1, columnspan=2, padx=5, pady=5, sticky="w")
+        # Group 2: Preview
+        g2 = ctk.CTkFrame(parent)
+        g2.grid(row=1, column=0, padx=5, pady=5, sticky="we")
+        g2.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(g2, text="적용 예시:", text_color="blue", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.r_preview_lbl = ctk.CTkLabel(g2, text="", text_color="blue", font=ctk.CTkFont(weight="bold", size=14))
+        self.r_preview_lbl.grid(row=0, column=1, padx=10, pady=10, sticky="w")
         
-        # Row 3: Save Location
-        ctk.CTkLabel(parent, text="저장 위치:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        # Group 3: Process Settings
+        g3 = ctk.CTkFrame(parent)
+        g3.grid(row=2, column=0, padx=5, pady=5, sticky="we")
+        g3.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(g3, text="[ 변환 설정 ]", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+        
+        # 저장 위치
+        ctk.CTkLabel(g3, text="저장 위치:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.r_save_loc_var = ctk.StringVar(value="sub")
-        loc_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        loc_frame.grid(row=3, column=1, columnspan=2, padx=5, pady=5, sticky="w")
-        ctk.CTkRadioButton(loc_frame, text="현재 폴더", variable=self.r_save_loc_var, value="same", command=self.toggle_r_subfolder).pack(side="left", padx=5)
-        ctk.CTkRadioButton(loc_frame, text="하위 폴더", variable=self.r_save_loc_var, value="sub", command=self.toggle_r_subfolder).pack(side="left", padx=10)
+        loc_frame = ctk.CTkFrame(g3, fg_color="transparent")
+        loc_frame.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        ctk.CTkRadioButton(loc_frame, text="현재 폴더", variable=self.r_save_loc_var, value="same", command=self.toggle_r_subfolder).pack(side="left", padx=(0, 10))
+        ctk.CTkRadioButton(loc_frame, text="하위 폴더", variable=self.r_save_loc_var, value="sub", command=self.toggle_r_subfolder).pack(side="left")
         
-        # Row 4: Subfolder settings (conditionally shown)
-        self.r_sub_row = ctk.CTkFrame(parent, fg_color="transparent")
-        self.r_sub_row.grid(row=4, column=1, columnspan=2, padx=5, pady=5, sticky="w")
-        ctk.CTkLabel(self.r_sub_row, text="└─ 폴더명:").pack(side="left", padx=(5, 5))
+        self.r_sub_row = ctk.CTkFrame(g3, fg_color="transparent")
+        self.r_sub_row.grid(row=2, column=1, padx=5, pady=0, sticky="w")
+        ctk.CTkLabel(self.r_sub_row, text="└─ 폴더명:").pack(side="left", padx=(0, 5))
         self.r_sub_name = ctk.CTkEntry(self.r_sub_row, width=120)
         self.r_sub_name.insert(0, "renamed")
         self.r_sub_name.pack(side="left", padx=5)
         self.r_date_prefix = ctk.CTkOptionMenu(self.r_sub_row, values=["datetime", "date", "none"], width=100)
         self.r_date_prefix.set("none")
         self.r_date_prefix.pack(side="left", padx=5)
-        ctk.CTkLabel(self.r_sub_row, text="(선택 시 날짜가 폴더명 앞에 붙습니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
-        # Row 5: Original File
-        ctk.CTkLabel(parent, text="원본 파일:").grid(row=5, column=0, padx=5, pady=5, sticky="w")
+        # 원본 파일
+        ctk.CTkLabel(g3, text="원본 파일:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
         self.r_orig_var = ctk.StringVar(value="keep")
-        orig_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        orig_frame.grid(row=5, column=1, columnspan=2, padx=5, pady=5, sticky="w")
-        ctk.CTkRadioButton(orig_frame, text="유지 (복사)", variable=self.r_orig_var, value="keep").pack(side="left", padx=5)
-        ctk.CTkRadioButton(orig_frame, text="삭제 (이동)", variable=self.r_orig_var, value="delete").pack(side="left", padx=10)
+        orig_frame = ctk.CTkFrame(g3, fg_color="transparent")
+        orig_frame.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        ctk.CTkRadioButton(orig_frame, text="유지 (복사)", variable=self.r_orig_var, value="keep").pack(side="left", padx=(0, 10))
+        ctk.CTkRadioButton(orig_frame, text="삭제 (이동)", variable=self.r_orig_var, value="delete").pack(side="left")
         
         self.update_r_preview()
         
@@ -224,9 +287,13 @@ class RightPanel(ctk.CTkFrame):
         sep = self.r_sep_var.get()
         processed = raw_name.replace(" ", sep) if raw_name else "이름없음"
         
+        total_files = len(self.app_state.image_files)
         pad_val = self.r_pad.get()
-        if pad_val == "지정안함": pad = "1"
-        elif pad_val in ["자동", "2자리"]: pad = "01"
+        if pad_val == "적용안함": pad = ""
+        elif pad_val == "자동": 
+            pad_len = len(str(total_files)) if total_files > 0 else 1
+            pad = "1".zfill(pad_len)
+        elif pad_val == "2자리": pad = "01"
         elif pad_val == "3자리": pad = "001"
         elif pad_val == "4자리": pad = "0001"
         elif pad_val == "5자리": pad = "00001"
@@ -234,7 +301,7 @@ class RightPanel(ctk.CTkFrame):
         else: pad = "1"
         
         ext = ".확장자" if self.r_ext.get() == "원본 유지" else self.r_ext.get()
-        self.r_preview_lbl.configure(text=f"{processed}{sep}{pad}{ext}")
+        self.r_preview_lbl.configure(text=f"{processed}{sep}{pad}{ext}" if pad else f"{processed}{ext}")
         self.main_window.on_settings_change()
         
     def get_current_mode(self):
@@ -250,7 +317,8 @@ class RightPanel(ctk.CTkFrame):
             'date_prefix': self.c_date_prefix.get(),
             'delete_orig': self.c_orig_var.get() == "delete",
             'compression_method': self.c_comp.get(),
-            'preview_size_val': self.c_preview_size_var.get()
+            'preview_size_val': self.c_preview_size_var.get(),
+            'pad_mode': self.c_pad.get()
         }
 
     def get_rename_settings(self):
@@ -364,5 +432,5 @@ class RightPanel(ctk.CTkFrame):
             ImageProcessor.process_images_async(
                 selected_files, self.app_state['selected_folder'], settings['raw_name'], settings['separator'],
                 settings['save_location'], settings['subfolder_name'], settings['date_prefix'], settings['delete_orig'],
-                settings['compression_method'], self.app_state['rotations'], callbacks
+                settings['compression_method'], self.app_state['rotations'], callbacks, settings['pad_mode']
             )
