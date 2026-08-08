@@ -67,18 +67,17 @@ class LeftPanel(ctk.CTkFrame):
         style.configure("Treeview.Heading", background=heading_bg, foreground=fg_color, borderwidth=1)
         style.map("Treeview.Heading", background=[('active', active_heading)])
 
-        self.tree = ttk.Treeview(list_frame, columns=("old_no", "before", "new_no", "after"), show="headings", selectmode="extended")
-        self.tree.heading("old_no", text="기존 순번")
+        self.tree = ttk.Treeview(list_frame, columns=("no", "before", "after"), show="headings", selectmode="extended")
+        self.tree.heading("no", text="순번")
         self.tree.heading("before", text="변경 전 (원본)")
-        self.tree.heading("new_no", text="새 순번")
         self.tree.heading("after", text="변경 후 (미리보기)")
-        self.tree.column("old_no", width=60, anchor="center")
+        self.tree.column("no", width=60, anchor="center")
         self.tree.column("before", width=150, anchor="w")
-        self.tree.column("new_no", width=60, anchor="center")
         self.tree.column("after", width=150, anchor="w")
         
-        self.tree.tag_configure("moved_up", foreground="#0055ff" if mode == "Light" else "#4da6ff")
-        self.tree.tag_configure("moved_down", foreground="#d90000" if mode == "Light" else "#ff4d4d")
+        # User requested: Red for moving up, Blue for moving down
+        self.tree.tag_configure("moved_up", foreground="#d90000" if mode == "Light" else "#ff4d4d")
+        self.tree.tag_configure("moved_down", foreground="#0055ff" if mode == "Light" else "#4da6ff")
         self.tree.tag_configure("normal", foreground=fg_color)
         
         self.tree.grid(row=1, column=0, padx=(10, 5), pady=10, sticky="nsew")
@@ -156,15 +155,11 @@ class LeftPanel(ctk.CTkFrame):
                     new_idx = i + 1
                     tag = "normal"
                     if new_idx < old_idx:
-                        new_idx_str = f"▲ {new_idx}"
                         tag = "moved_up"
                     elif new_idx > old_idx:
-                        new_idx_str = f"▼ {new_idx}"
                         tag = "moved_down"
-                    else:
-                        new_idx_str = str(new_idx)
                         
-                    self.tree.insert("", tk.END, values=(str(old_idx), f, new_idx_str, ""), tags=(tag,))
+                    self.tree.insert("", tk.END, values=(str(new_idx), f, ""), tags=(tag,))
             self.update_file_count()
             return
             
@@ -188,18 +183,14 @@ class LeftPanel(ctk.CTkFrame):
             new_idx = i + 1
             tag = "normal"
             if new_idx < old_idx:
-                new_idx_str = f"▲ {new_idx}"
                 tag = "moved_up"
             elif new_idx > old_idx:
-                new_idx_str = f"▼ {new_idx}"
                 tag = "moved_down"
-            else:
-                new_idx_str = str(new_idx)
                 
             if fast_update:
-                self.tree.item(current_children[i], values=(str(old_idx), f, new_idx_str, new_f), tags=(tag,))
+                self.tree.item(current_children[i], values=(str(new_idx), f, new_f), tags=(tag,))
             else:
-                self.tree.insert("", tk.END, values=(str(old_idx), f, new_idx_str, new_f), tags=(tag,))
+                self.tree.insert("", tk.END, values=(str(new_idx), f, new_f), tags=(tag,))
                 
         if not fast_update:
             new_children = self.tree.get_children()

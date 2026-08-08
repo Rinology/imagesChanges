@@ -354,7 +354,7 @@ class RightPanel(ctk.CTkFrame):
         # Assuming you disable tabs as well during run, but left out for simplicity
         
     def start_conversion(self):
-        if not self.app_state.get('selected_folder'):
+        if not self.app_state.selected_folder:
             self.log("❌ 먼저 폴더를 선택해주세요.")
             return
             
@@ -424,13 +424,13 @@ class RightPanel(ctk.CTkFrame):
         
         if settings.get('mode') == 'rename':
             ImageProcessor.rename_images_async(
-                selected_files, self.app_state['selected_folder'], settings['raw_name'], settings['separator'],
+                selected_files, self.app_state.selected_folder, settings['raw_name'], settings['separator'],
                 settings['save_location'], settings['subfolder_name'], settings['date_prefix'], settings['delete_orig'],
                 callbacks, settings['pad_mode'], settings['target_ext']
             )
         else:
             ImageProcessor.process_images_async(
-                selected_files, self.app_state['selected_folder'], settings['raw_name'], settings['separator'],
+                selected_files, self.app_state.selected_folder, settings['raw_name'], settings['separator'],
                 settings['save_location'], settings['subfolder_name'], settings['date_prefix'], settings['delete_orig'],
-                settings['compression_method'], self.app_state['rotations'], callbacks, settings['pad_mode']
+                settings['compression_method'], self.app_state.rotations, callbacks, settings['pad_mode']
             )
