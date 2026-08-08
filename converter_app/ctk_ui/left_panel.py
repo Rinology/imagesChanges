@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog
 from PIL import Image
 import customtkinter as ctk
@@ -38,13 +39,31 @@ class LeftPanel(ctk.CTkFrame):
         self.lbl_file_count = ctk.CTkLabel(list_frame, text="선택된 파일: 0 / 0개")
         self.lbl_file_count.grid(row=0, column=1, pady=(10, 0), sticky="e", padx=10)
         
-        self.listbox = tk.Listbox(list_frame, selectmode=tk.EXTENDED, bg="#2b2b2b", fg="white", selectbackground="#1f538d", borderwidth=0, highlightthickness=0)
-        self.listbox.grid(row=1, column=0, padx=(10, 5), pady=10, sticky="nsew")
-        self.listbox.bind('<<ListboxSelect>>', lambda e: self.on_listbox_select())
+        # Treeview styling
+        style = ttk.Style(self)
+        style.theme_use("default")
+        style.configure("Treeview",
+                        background="#2b2b2b",
+                        foreground="white",
+                        rowheight=25,
+                        fieldbackground="#2b2b2b",
+                        borderwidth=0)
+        style.map('Treeview', background=[('selected', '#1f538d')])
+        style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
+        style.map("Treeview.Heading", background=[('active', '#444444')])
+
+        self.tree = ttk.Treeview(list_frame, columns=("before", "after"), show="headings", selectmode="extended")
+        self.tree.heading("before", text="변경 전 (원본)")
+        self.tree.heading("after", text="변경 후 (미리보기)")
+        self.tree.column("before", width=150, anchor="w")
+        self.tree.column("after", width=150, anchor="w")
         
-        scrollbar = ctk.CTkScrollbar(list_frame, command=self.listbox.yview)
+        self.tree.grid(row=1, column=0, padx=(10, 5), pady=10, sticky="nsew")
+        self.tree.bind('<<TreeviewSelect>>', lambda e: self.on_listbox_select())
+        
+        scrollbar = ctk.CTkScrollbar(list_frame, command=self.tree.yview)
         scrollbar.grid(row=1, column=1, padx=(0, 5), pady=10, sticky="ns")
-        self.listbox.configure(yscrollcommand=scrollbar.set)
+        self.tree.configure(yscrollcommand=scrollbar.set)
         
         btn_frame = ctk.CTkFrame(list_frame, fg_color="transparent")
         btn_frame.grid(row=1, column=2, padx=5, pady=10, sticky="nw")
@@ -97,13 +116,14 @@ class LeftPanel(ctk.CTkFrame):
         
     def refresh_listbox(self):
         # Save selection
-        sel = self.listbox.curselection()
+        current_children = self.tree.get_children()
+        selected_indices = [current_children.index(iid) for iid in self.tree.selection()]
         
-        self.listbox.delete(0, tk.END)
+        self.tree.delete(*self.tree.get_children())
         
         if not hasattr(self.main_window, 'right_panel'):
             for f in self.app_state['image_files']:
-                self.listbox.insert(tk.END, f)
+                self.tree.insert("", tk.END, values=(f, ""))
             self.update_file_count()
             return
             
@@ -134,20 +154,22 @@ class LeftPanel(ctk.CTkFrame):
                 ext = os.path.splitext(f)[1] if settings['target_ext'] == "원본 유지" else settings['target_ext']
                 new_f = f"{raw_name}{settings['separator']}{idx_str}{ext}"
                 
-            self.listbox.insert(tk.END, f"{f}  ➔  {new_f}")
+            self.tree.insert("", tk.END, values=(f, new_f))
             
         # Restore selection
-        for i in sel:
-            self.listbox.select_set(i)
+        new_children = self.tree.get_children()
+        for idx in selected_indices:
+            if idx < len(new_children):
+                self.tree.selection_add(new_children[idx])
             
         self.update_file_count()
         
     def select_all(self):
-        self.listbox.select_set(0, tk.END)
+        self.tree.selection_set(self.tree.get_children())
         self.on_listbox_select()
         
     def deselect_all(self):
-        self.listbox.selection_clear(0, tk.END)
+        self.tree.selection_remove(self.tree.get_children())
         self.on_listbox_select()
         
     def on_listbox_select(self):
@@ -156,15 +178,17 @@ class LeftPanel(ctk.CTkFrame):
         
     def update_file_count(self):
         total = len(self.app_state['image_files'])
-        selected = len(self.listbox.curselection())
+        selected = len(self.tree.selection())
         self.lbl_file_count.configure(text=f"선택된 파일: {selected} / {total}개")
         
     def get_selected_files(self):
-        indices = self.listbox.curselection()
+        current_children = self.tree.get_children()
+        indices = [current_children.index(iid) for iid in self.tree.selection()]
         return [self.app_state['image_files'][i] for i in indices]
         
     def move_up(self):
-        indices = list(self.listbox.curselection())
+        current_children = self.tree.get_children()
+        indices = [current_children.index(iid) for iid in self.tree.selection()]
         if not indices: return
         
         for i in indices:
@@ -173,15 +197,17 @@ class LeftPanel(ctk.CTkFrame):
                 
         self.refresh_listbox()
         # Reselect
+        new_children = self.tree.get_children()
         for i in indices:
             if i > 0 and (i-1) not in indices:
-                self.listbox.select_set(i-1)
+                self.tree.selection_add(new_children[i-1])
             else:
-                self.listbox.select_set(i)
+                self.tree.selection_add(new_children[i])
         self.on_listbox_select()
         
     def move_down(self):
-        indices = list(self.listbox.curselection())
+        current_children = self.tree.get_children()
+        indices = [current_children.index(iid) for iid in self.tree.selection()]
         if not indices: return
         
         max_idx = len(self.app_state['image_files']) - 1
@@ -191,15 +217,17 @@ class LeftPanel(ctk.CTkFrame):
                 
         self.refresh_listbox()
         # Reselect
+        new_children = self.tree.get_children()
         for i in reversed(indices):
             if i < max_idx and (i+1) not in indices:
-                self.listbox.select_set(i+1)
+                self.tree.selection_add(new_children[i+1])
             else:
-                self.listbox.select_set(i)
+                self.tree.selection_add(new_children[i])
         self.on_listbox_select()
         
     def remove_from_list(self):
-        indices = list(self.listbox.curselection())
+        current_children = self.tree.get_children()
+        indices = [current_children.index(iid) for iid in self.tree.selection()]
         if not indices: return
         
         for i in reversed(indices):
@@ -210,7 +238,8 @@ class LeftPanel(ctk.CTkFrame):
         self.on_listbox_select()
         
     def handle_rotate(self):
-        indices = self.listbox.curselection()
+        current_children = self.tree.get_children()
+        indices = [current_children.index(iid) for iid in self.tree.selection()]
         if not indices: return
         
         first_idx = indices[0]
@@ -277,4 +306,4 @@ class LeftPanel(ctk.CTkFrame):
     def set_run_state(self, is_running):
         state = "disabled" if is_running else "normal"
         self.btn_open_folder.configure(state=state)
-        self.listbox.configure(state=tk.DISABLED if is_running else tk.NORMAL)
+        # Treeview doesn't have a disabled state natively in the same way, but it's fine.
