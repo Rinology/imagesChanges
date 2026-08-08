@@ -180,7 +180,7 @@ class ImageProcessor:
             if total_saved_bytes > 0:
                 log(f"💾 총 절감된 용량: {ImageProcessor.format_size(total_saved_bytes)}")
                 
-            done_cb(success_count, error_count, total_saved_bytes)
+            done_cb(success_count, error_count, total_saved_bytes, output_dir)
 
         threading.Thread(target=process, daemon=True).start()
 
@@ -252,7 +252,7 @@ class ImageProcessor:
                 progress_cb(idx, total_files)
                     
             log(f"🎉 이름 변경 완료! (성공: {success_count}, 에러: {error_count})")
-            done_cb(success_count, error_count, 0) # total_saved_bytes = 0
+            done_cb(success_count, error_count, 0, output_dir) # total_saved_bytes = 0
 
         threading.Thread(target=process, daemon=True).start()
 

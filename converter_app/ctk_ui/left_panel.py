@@ -35,8 +35,11 @@ class LeftPanel(ctk.CTkFrame):
         self.btn_open_folder = ctk.CTkButton(folder_frame, text="📂 폴더 열기", command=self.on_open_folder, width=100)
         self.btn_open_folder.grid(row=0, column=0, padx=(10, 5), pady=10)
         
+        self.btn_clear_list = ctk.CTkButton(folder_frame, text="🗑️ 목록 비우기", command=self.clear_list, width=100, fg_color="transparent", border_width=1, text_color=("black", "white"))
+        self.btn_clear_list.grid(row=0, column=1, padx=5, pady=10)
+        
         self.lbl_folder_path = ctk.CTkLabel(folder_frame, text="선택된 폴더 없음", text_color="gray")
-        self.lbl_folder_path.grid(row=0, column=1, padx=5, pady=10, sticky="w")
+        self.lbl_folder_path.grid(row=0, column=2, padx=5, pady=10, sticky="w")
         
         list_frame = ctk.CTkFrame(self)
         list_frame.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
@@ -67,17 +70,17 @@ class LeftPanel(ctk.CTkFrame):
         style.configure("Treeview.Heading", background=heading_bg, foreground=fg_color, borderwidth=1)
         style.map("Treeview.Heading", background=[('active', active_heading)])
 
-        self.tree = ttk.Treeview(list_frame, columns=("no", "before", "after"), show="headings", selectmode="extended")
-        self.tree.heading("no", text="순번")
+        self.tree = ttk.Treeview(list_frame, columns=("original_no", "before", "new_no", "after"), show="headings", selectmode="extended")
+        self.tree.heading("original_no", text="기존 순번")
         self.tree.heading("before", text="변경 전 (원본)")
+        self.tree.heading("new_no", text="새 순번")
         self.tree.heading("after", text="변경 후 (미리보기)")
-        self.tree.column("no", width=60, anchor="center")
+        
+        self.tree.column("original_no", width=60, anchor="center")
         self.tree.column("before", width=150, anchor="w")
+        self.tree.column("new_no", width=60, anchor="center")
         self.tree.column("after", width=150, anchor="w")
         
-        # User requested: Red for moving up, Blue for moving down
-        self.tree.tag_configure("moved_up", foreground="#d90000" if mode == "Light" else "#ff4d4d")
-        self.tree.tag_configure("moved_down", foreground="#0055ff" if mode == "Light" else "#4da6ff")
         self.tree.tag_configure("normal", foreground=fg_color)
         
         self.tree.grid(row=1, column=0, padx=(10, 5), pady=10, sticky="nsew")
@@ -130,6 +133,11 @@ class LeftPanel(ctk.CTkFrame):
         if path:
             self.on_folder_selected(path)
             
+    def clear_list(self):
+        self.app_state.update_files("", [])
+        self.lbl_folder_path.configure(text="선택된 폴더 없음", text_color="gray")
+        self.main_window.log("🗑️ 목록이 비워졌습니다.")
+        
     def on_folder_selected(self, path):
         valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')
         files = []
@@ -153,13 +161,7 @@ class LeftPanel(ctk.CTkFrame):
                 for i, f in enumerate(self.app_state.image_files):
                     old_idx = self.app_state.original_files.index(f) + 1 if f in self.app_state.original_files else i + 1
                     new_idx = i + 1
-                    tag = "normal"
-                    if new_idx < old_idx:
-                        tag = "moved_up"
-                    elif new_idx > old_idx:
-                        tag = "moved_down"
-                        
-                    self.tree.insert("", tk.END, values=(str(new_idx), f, ""), tags=(tag,))
+                    self.tree.insert("", tk.END, values=(str(old_idx), f, str(new_idx), ""), tags=("normal",))
             self.update_file_count()
             return
             
@@ -181,16 +183,11 @@ class LeftPanel(ctk.CTkFrame):
             
             old_idx = self.app_state.original_files.index(f) + 1 if f in self.app_state.original_files else i + 1
             new_idx = i + 1
-            tag = "normal"
-            if new_idx < old_idx:
-                tag = "moved_up"
-            elif new_idx > old_idx:
-                tag = "moved_down"
                 
             if fast_update:
-                self.tree.item(current_children[i], values=(str(new_idx), f, new_f), tags=(tag,))
+                self.tree.item(current_children[i], values=(str(old_idx), f, str(new_idx), new_f), tags=("normal",))
             else:
-                self.tree.insert("", tk.END, values=(str(new_idx), f, new_f), tags=(tag,))
+                self.tree.insert("", tk.END, values=(str(old_idx), f, str(new_idx), new_f), tags=("normal",))
                 
         if not fast_update:
             new_children = self.tree.get_children()

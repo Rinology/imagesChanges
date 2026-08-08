@@ -153,12 +153,22 @@ class RightPanel(ctk.CTkFrame):
         comp_frame = ctk.CTkFrame(g3, fg_color="transparent")
         comp_frame.grid(row=4, column=1, padx=5, pady=5, sticky="w")
         ctk.CTkLabel(comp_frame, text="압축 강도:").pack(side="left")
-        self.c_comp = ctk.CTkOptionMenu(comp_frame, values=["6", "4", "0"], width=60, command=lambda e: self.main_window.on_settings_change())
-        self.c_comp.set("6")
+        self.c_comp = ctk.CTkOptionMenu(comp_frame, values=["3", "2", "1"], width=60, command=lambda e: self.main_window.on_settings_change())
+        self.c_comp.set("3")
         self.c_comp.pack(side="left", padx=5)
+        ctk.CTkLabel(comp_frame, text="(3단계가 용량이 가장 많이 줄어듭니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=(0, 10))
         self.c_preview_size_var = ctk.BooleanVar(value=False)
         self.c_preview_size = ctk.CTkSwitch(comp_frame, text="예상 용량 계산 (느려짐)", variable=self.c_preview_size_var, command=lambda: self.main_window.on_settings_change())
         self.c_preview_size.pack(side="left", padx=(10, 0))
+        
+        # 완료 후 동작
+        ctk.CTkLabel(g3, text="완료 후 동작:").grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        action_frame_c = ctk.CTkFrame(g3, fg_color="transparent")
+        action_frame_c.grid(row=5, column=1, padx=5, pady=5, sticky="w")
+        self.c_open_folder_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(action_frame_c, text="저장 폴더 열기", variable=self.c_open_folder_var).pack(side="left", padx=(0, 10))
+        self.c_refresh_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(action_frame_c, text="목록 새로고침", variable=self.c_refresh_var).pack(side="left")
         
         self.update_c_preview()
         
@@ -263,7 +273,7 @@ class RightPanel(ctk.CTkFrame):
         self.r_sub_name.insert(0, "renamed")
         self.r_sub_name.pack(side="left", padx=5)
         self.r_date_prefix = ctk.CTkOptionMenu(self.r_sub_row, values=["datetime", "date", "none"], width=100)
-        self.r_date_prefix.set("none")
+        self.r_date_prefix.set("datetime")
         self.r_date_prefix.pack(side="left", padx=5)
         
         # 원본 파일
@@ -273,6 +283,15 @@ class RightPanel(ctk.CTkFrame):
         orig_frame.grid(row=3, column=1, padx=5, pady=5, sticky="w")
         ctk.CTkRadioButton(orig_frame, text="유지 (복사)", variable=self.r_orig_var, value="keep").pack(side="left", padx=(0, 10))
         ctk.CTkRadioButton(orig_frame, text="삭제 (이동)", variable=self.r_orig_var, value="delete").pack(side="left")
+        
+        # 완료 후 동작
+        ctk.CTkLabel(g3, text="완료 후 동작:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        action_frame_r = ctk.CTkFrame(g3, fg_color="transparent")
+        action_frame_r.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+        self.r_open_folder_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(action_frame_r, text="저장 폴더 열기", variable=self.r_open_folder_var).pack(side="left", padx=(0, 10))
+        self.r_refresh_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(action_frame_r, text="목록 새로고침", variable=self.r_refresh_var).pack(side="left")
         
         self.update_r_preview()
         
@@ -308,6 +327,7 @@ class RightPanel(ctk.CTkFrame):
         return "compress" if self.tabview.get() == "압축 및 이름변경" else "rename"
         
     def get_compression_settings(self):
+        method_map = {"1": "0", "2": "4", "3": "6"}
         return {
             'mode': 'compress',
             'raw_name': self.c_name_input.get().strip(),
@@ -316,9 +336,11 @@ class RightPanel(ctk.CTkFrame):
             'subfolder_name': self.c_sub_name.get().strip(),
             'date_prefix': self.c_date_prefix.get(),
             'delete_orig': self.c_orig_var.get() == "delete",
-            'compression_method': self.c_comp.get(),
+            'compression_method': method_map.get(self.c_comp.get(), "6"),
             'preview_size_val': self.c_preview_size_var.get(),
-            'pad_mode': self.c_pad.get()
+            'pad_mode': self.c_pad.get(),
+            'open_folder': self.c_open_folder_var.get(),
+            'refresh_list': self.c_refresh_var.get()
         }
 
     def get_rename_settings(self):
@@ -331,7 +353,9 @@ class RightPanel(ctk.CTkFrame):
             'date_prefix': self.r_date_prefix.get(),
             'delete_orig': self.r_orig_var.get() == "delete",
             'pad_mode': self.r_pad.get(),
-            'target_ext': self.r_ext.get()
+            'target_ext': self.r_ext.get(),
+            'open_folder': self.r_open_folder_var.get(),
+            'refresh_list': self.r_refresh_var.get()
         }
         
     def log(self, message):
@@ -413,8 +437,15 @@ class RightPanel(ctk.CTkFrame):
         def progress_cb(current, total):
             self.after(0, lambda: self.update_progress(current, total))
             
-        def done_cb(success, errors, bytes_saved):
-            self.after(0, lambda: self.main_window.set_run_state(False))
+        def done_cb(success, errors, bytes_saved, output_dir):
+            def on_done():
+                self.main_window.set_run_state(False)
+                if settings.get('open_folder', False) and os.path.exists(output_dir):
+                    os.startfile(output_dir)
+                if settings.get('refresh_list', False) and self.app_state.selected_folder:
+                    self.main_window.left_panel.on_folder_selected(self.app_state.selected_folder)
+                    
+            self.after(0, on_done)
             
         callbacks = {
             'log': log_cb,
