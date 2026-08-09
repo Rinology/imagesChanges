@@ -627,7 +627,8 @@ class RightPanel(ctk.CTkFrame):
         callbacks = {
             'log': log_cb,
             'progress': progress_cb,
-            'done': done_cb
+            'done': done_cb,
+            'custom_path': settings.get('custom_path', '')
         }
         
         if settings.get('mode') == 'rename':
