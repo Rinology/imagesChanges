@@ -86,9 +86,10 @@ class RightPanel(ctk.CTkFrame):
         name_frame = ctk.CTkFrame(g1, fg_color="transparent")
         name_frame.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         self.c_name_input = ctk.CTkEntry(name_frame, width=150)
-        self.c_name_input.insert(0, "my image")
+        self.c_name_input.insert(0, "사진 압축")
         self.c_name_input.pack(side="left", padx=(0, 5))
         self.c_name_input.bind("<KeyRelease>", self.update_c_preview)
+        ctk.CTkLabel(name_frame, text="(띄어쓰기는 연결 기호로 자동 변환됩니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
         # 이름 연결 기호
         ctk.CTkLabel(g1, text="이름 연결 기호:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
@@ -146,7 +147,7 @@ class RightPanel(ctk.CTkFrame):
         self.c_sub_name.insert(0, "output")
         self.c_sub_name.pack(side="left", padx=5)
         self.c_date_prefix = ctk.CTkOptionMenu(self.c_sub_row, values=["datetime", "date", "none"], width=100)
-        self.c_date_prefix.set("datetime")
+        self.c_date_prefix.set("none")
         self.c_date_prefix.pack(side="left", padx=5)
         
         # 원본 파일
@@ -223,9 +224,10 @@ class RightPanel(ctk.CTkFrame):
         name_frame = ctk.CTkFrame(g1, fg_color="transparent")
         name_frame.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         self.r_name_input = ctk.CTkEntry(name_frame, width=150)
-        self.r_name_input.insert(0, "사진 고양이")
+        self.r_name_input.insert(0, "이름 변경")
         self.r_name_input.pack(side="left", padx=(0, 5))
         self.r_name_input.bind("<KeyRelease>", self.update_r_preview)
+        ctk.CTkLabel(name_frame, text="(띄어쓰기는 연결 기호로 자동 변환됩니다)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
         # 이름 연결 기호
         ctk.CTkLabel(g1, text="이름 연결 기호:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
@@ -283,7 +285,7 @@ class RightPanel(ctk.CTkFrame):
         self.r_sub_name.insert(0, "renamed")
         self.r_sub_name.pack(side="left", padx=5)
         self.r_date_prefix = ctk.CTkOptionMenu(self.r_sub_row, values=["datetime", "date", "none"], width=100)
-        self.r_date_prefix.set("datetime")
+        self.r_date_prefix.set("none")
         self.r_date_prefix.pack(side="left", padx=5)
         
         # 원본 파일
