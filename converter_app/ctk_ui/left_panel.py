@@ -49,9 +49,12 @@ class LeftPanel(ctk.CTkFrame):
         list_frame.grid_columnconfigure(0, weight=1)
         list_frame.grid_rowconfigure(1, weight=1)
         
-        ctk.CTkLabel(list_frame, text="이미지 파일 목록", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, pady=(10, 0), sticky="w", padx=10)
-        self.lbl_file_count = ctk.CTkLabel(list_frame, text="선택된 파일: 0 / 0개")
-        self.lbl_file_count.grid(row=0, column=1, pady=(10, 0), sticky="e", padx=10)
+        header_frame = ctk.CTkFrame(list_frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, columnspan=2, pady=(10, 0), sticky="w", padx=10)
+        
+        ctk.CTkLabel(header_frame, text="이미지 파일 목록", font=ctk.CTkFont(weight="bold")).pack(side="left")
+        self.lbl_file_count = ctk.CTkLabel(header_frame, text="(선택된 파일: 0 / 0개)")
+        self.lbl_file_count.pack(side="left", padx=(10, 0))
         
         # Treeview styling
         style = ttk.Style(self)
@@ -139,7 +142,7 @@ class LeftPanel(ctk.CTkFrame):
     def clear_list(self):
         self.app_state.update_files("", [])
         self.lbl_folder_path.configure(text="선택된 폴더 없음", text_color="gray")
-        self.main_window.log("🗑️ 목록이 비워졌습니다.")
+        self.main_window.log("🗑️목록이 비워졌습니다.")
         
     def refresh_folder(self):
         if self.app_state.selected_folder:
@@ -227,7 +230,9 @@ class LeftPanel(ctk.CTkFrame):
     def update_file_count(self):
         total = len(self.app_state.image_files)
         selected = len(self.tree.selection())
-        self.lbl_file_count.configure(text=f"선택된 파일: {selected} / {total}개")
+        self.lbl_file_count.configure(text=f"(선택된 파일: {selected} / {total}개)")
+        if hasattr(self.main_window, 'right_panel') and hasattr(self.main_window.right_panel, 'lbl_selected_count_right'):
+            self.main_window.right_panel.lbl_selected_count_right.configure(text=f"선택된 파일: {selected} / {total}개")
         
     def get_selected_files(self):
         current_children = self.tree.get_children()
@@ -316,7 +321,7 @@ class LeftPanel(ctk.CTkFrame):
         indices = self.get_selected_indices()
         if indices:
             self.app_state.remove_files(indices)
-            self.main_window.log(f"🗑️ 목록에서 {len(indices)}개의 파일이 제외되었습니다.")
+            self.main_window.log(f"🗑️목록에서 {len(indices)}개의 파일이 제외되었습니다.")
         
     def handle_rotate(self):
         indices = self.get_selected_indices()

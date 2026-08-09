@@ -32,13 +32,19 @@ class RightPanel(ctk.CTkFrame):
         self.build_compress_tab()
         self.build_rename_tab()
         
+        run_frame = ctk.CTkFrame(settings_frame, fg_color="transparent")
+        run_frame.grid(row=1, column=0, padx=10, pady=(0, 10))
+        
+        self.lbl_selected_count_right = ctk.CTkLabel(run_frame, text="선택된 파일: 0 / 0개")
+        self.lbl_selected_count_right.pack(side="left", padx=(0, 15))
+        
         self.btn_run = ctk.CTkButton(
-            settings_frame, text="🚀 변환 실행", 
+            run_frame, text="🚀 변환 실행", 
             font=ctk.CTkFont(size=15, weight="bold"),
             height=40,
             command=self.start_conversion
         )
-        self.btn_run.grid(row=1, column=0, padx=10, pady=(0, 10))
+        self.btn_run.pack(side="left")
         
         # 2. Log & Progress (Bottom Right)
         log_frame = ctk.CTkFrame(self)
@@ -91,6 +97,7 @@ class RightPanel(ctk.CTkFrame):
         self.c_sep_var = ctk.StringVar(value="_")
         ctk.CTkRadioButton(sep_frame, text="_(언더바)", variable=self.c_sep_var, value="_", command=self.update_c_preview).pack(side="left", padx=(0, 5))
         ctk.CTkRadioButton(sep_frame, text="-(하이픈)", variable=self.c_sep_var, value="-", command=self.update_c_preview).pack(side="left", padx=5)
+        ctk.CTkRadioButton(sep_frame, text=" (띄어쓰기)", variable=self.c_sep_var, value=" ", command=self.update_c_preview).pack(side="left", padx=5)
         
         # 숫자 패딩
         ctk.CTkLabel(g1, text="숫자 패딩:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
@@ -227,6 +234,7 @@ class RightPanel(ctk.CTkFrame):
         self.r_sep_var = ctk.StringVar(value="-")
         ctk.CTkRadioButton(sep_frame, text="_(언더바)", variable=self.r_sep_var, value="_", command=self.update_r_preview).pack(side="left", padx=(0, 5))
         ctk.CTkRadioButton(sep_frame, text="-(하이픈)", variable=self.r_sep_var, value="-", command=self.update_r_preview).pack(side="left", padx=5)
+        ctk.CTkRadioButton(sep_frame, text=" (띄어쓰기)", variable=self.r_sep_var, value=" ", command=self.update_r_preview).pack(side="left", padx=5)
         
         # 숫자 패딩
         ctk.CTkLabel(g1, text="숫자 패딩:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
