@@ -132,9 +132,9 @@ class RightPanel(ctk.CTkFrame):
         ctk.CTkLabel(ext_frame, text="(.webp 고정)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
         # Preview
-        preview_frame = ctk.CTkFrame(g1, fg_color="transparent")
-        preview_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nw")
-        ctk.CTkLabel(preview_frame, text="[ 적용 예시 ]", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=5, pady=5)
+        preview_frame = ctk.CTkFrame(g1, fg_color=("gray90", "gray20"), corner_radius=8, border_width=1, border_color=("gray75", "gray30"))
+        preview_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nw")
+        ctk.CTkLabel(preview_frame, text="[ 적용 예시 ]", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=5)
         
         self.c_preview_lbl = ctk.CTkLabel(preview_frame, text="", text_color="blue", font=ctk.CTkFont(weight="bold", size=18))
         self.c_preview_lbl.pack(anchor="w", padx=15, pady=15)
@@ -318,9 +318,9 @@ class RightPanel(ctk.CTkFrame):
         ctk.CTkLabel(ext_frame, text="(원본의 확장자 강제 변경)", text_color="gray", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
         
         # Preview
-        preview_frame = ctk.CTkFrame(g1, fg_color="transparent")
-        preview_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nw")
-        ctk.CTkLabel(preview_frame, text="[ 적용 예시 ]", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=5, pady=5)
+        preview_frame = ctk.CTkFrame(g1, fg_color=("gray90", "gray20"), corner_radius=8, border_width=1, border_color=("gray75", "gray30"))
+        preview_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nw")
+        ctk.CTkLabel(preview_frame, text="[ 적용 예시 ]", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=5)
         
         self.r_preview_lbl = ctk.CTkLabel(preview_frame, text="", text_color="blue", font=ctk.CTkFont(weight="bold", size=18))
         self.r_preview_lbl.pack(anchor="w", padx=15, pady=15)
@@ -523,10 +523,6 @@ class RightPanel(ctk.CTkFrame):
         변환 실행 버튼 클릭 시 호출되며, 
         현재 설정에 기반하여 새 파일명들을 생성한 후 RenameDialog(확인창)을 띄웁니다.
         """
-        if not self.app_state.selected_folder:
-            self.log("❌ 먼저 폴더를 선택해주세요.")
-            return
-            
         selected_files = self.main_window.get_selected_files()
         if not selected_files:
             self.log("❌ 처리할 이미지를 선택해주세요.")
