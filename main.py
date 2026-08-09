@@ -2,6 +2,13 @@ import customtkinter as ctk
 from converter_app.ctk_ui.main_window import MainWindow
 
 def main():
+    """
+    프로그램의 메인 진입점 함수입니다.
+    - 테마와 기본 색상을 설정합니다.
+    - 메인 윈도우(CTk)를 생성하고 해상도를 설정합니다.
+    - MainWindow 컴포넌트를 초기화하여 화면에 배치합니다.
+    - 메인 이벤트 루프를 시작합니다.
+    """
     ctk.set_appearance_mode("System")
     ctk.set_default_color_theme("blue")
     

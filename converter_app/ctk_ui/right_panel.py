@@ -17,6 +17,10 @@ class RightPanel(ctk.CTkFrame):
         self.build_ui()
         
     def build_ui(self):
+        """
+        우측 패널의 전체 UI를 구성합니다. 
+        상단에 탭뷰(설정), 하단에 진행 상태 및 로그를 배치합니다.
+        """
         # 1. Settings (Top Right)
         settings_frame = ctk.CTkFrame(self)
         settings_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
@@ -69,9 +73,14 @@ class RightPanel(ctk.CTkFrame):
         credits.bind("<Button-1>", lambda e: webbrowser.open("https://github.com/Rinology"))
         
     def on_tab_change(self):
+        """탭이 변경될 때마다 미리보기를 업데이트하도록 메인 윈도우에 알립니다."""
         self.main_window.on_settings_change()
         
     def build_compress_tab(self):
+        """
+        [압축 및 이름변경] 탭의 UI 요소들을 생성하고 배치합니다.
+        (이름 설정, 미리보기, 확장자 고정, 변환 설정 등)
+        """
         parent = self.tab_compress
         parent.grid_columnconfigure(0, weight=1)
         
@@ -183,12 +192,16 @@ class RightPanel(ctk.CTkFrame):
         self.update_c_preview()
         
     def toggle_c_subfolder(self):
+        """저장 위치가 '하위 폴더'일 때만 폴더명 입력란을 표시합니다. (압축 탭)"""
         if self.c_save_loc_var.get() == "sub":
             self.c_sub_row.grid()
         else:
             self.c_sub_row.grid_remove()
             
     def update_c_preview(self, event=None):
+        """
+        사용자 입력(이름, 기호, 패딩 등)을 바탕으로 [압축 탭]의 최종 파일명 미리보기를 생성하여 라벨에 표시합니다.
+        """
         raw_name = self.c_name_input.get().strip()
         sep = self.c_sep_var.get()
         processed = raw_name.replace(" ", sep) if raw_name else "이름없음"
@@ -210,6 +223,10 @@ class RightPanel(ctk.CTkFrame):
         self.main_window.on_settings_change()
         
     def build_rename_tab(self):
+        """
+        [단순 이름변경] 탭의 UI 요소들을 생성하고 배치합니다.
+        (이름 설정, 미리보기, 확장자 선택 등)
+        """
         parent = self.tab_rename
         parent.grid_columnconfigure(0, weight=1)
         
@@ -308,12 +325,16 @@ class RightPanel(ctk.CTkFrame):
         self.update_r_preview()
         
     def toggle_r_subfolder(self):
+        """저장 위치가 '하위 폴더'일 때만 폴더명 입력란을 표시합니다. (이름변경 탭)"""
         if self.r_save_loc_var.get() == "sub":
             self.r_sub_row.grid()
         else:
             self.r_sub_row.grid_remove()
             
     def update_r_preview(self, event=None):
+        """
+        사용자 입력(이름, 기호, 확장자 등)을 바탕으로 [이름변경 탭]의 최종 파일명 미리보기를 생성하여 라벨에 표시합니다.
+        """
         raw_name = self.r_name_input.get().strip()
         sep = self.r_sep_var.get()
         processed = raw_name.replace(" ", sep) if raw_name else "이름없음"
@@ -336,9 +357,11 @@ class RightPanel(ctk.CTkFrame):
         self.main_window.on_settings_change()
         
     def get_current_mode(self):
+        """현재 활성화된 탭에 따라 'compress' 또는 'rename' 모드를 반환합니다."""
         return "compress" if self.tabview.get() == "압축 및 이름변경" else "rename"
         
     def get_compression_settings(self):
+        """[압축 및 이름변경] 탭의 현재 설정 값들을 딕셔너리 형태로 반환합니다."""
         method_map = {"1": "0", "2": "4", "3": "6"}
         return {
             'mode': 'compress',
@@ -356,6 +379,7 @@ class RightPanel(ctk.CTkFrame):
         }
 
     def get_rename_settings(self):
+        """[단순 이름변경] 탭의 현재 설정 값들을 딕셔너리 형태로 반환합니다."""
         return {
             'mode': 'rename',
             'raw_name': self.r_name_input.get().strip(),
@@ -371,12 +395,20 @@ class RightPanel(ctk.CTkFrame):
         }
         
     def log(self, message):
+        """로그 텍스트박스에 메시지를 추가하고 맨 아래로 스크롤합니다."""
         self.log_textbox.configure(state="normal")
         self.log_textbox.insert("end", message + "\n")
         self.log_textbox.see("end")
         self.log_textbox.configure(state="disabled")
 
     def update_progress(self, current, total):
+        """
+        변환 진행 상황을 프로그레스 바에 업데이트하고 텍스트로 표시합니다.
+        
+        Args:
+            current (int): 현재 완료된 개수
+            total (int): 전체 파일 개수
+        """
         progress = (current / total) if total > 0 else 0
         self.progress_bar.set(progress)
         
@@ -385,11 +417,16 @@ class RightPanel(ctk.CTkFrame):
             self.lbl_progress.configure(text="완료!")
             
     def set_run_state(self, is_running):
+        """작업 실행 중 버튼들을 비활성화/활성화하여 중복 실행을 막습니다."""
         state = "disabled" if is_running else "normal"
         self.btn_run.configure(state=state)
         # Assuming you disable tabs as well during run, but left out for simplicity
         
     def start_conversion(self):
+        """
+        변환 실행 버튼 클릭 시 호출되며, 
+        현재 설정에 기반하여 새 파일명들을 생성한 후 RenameDialog(확인창)을 띄웁니다.
+        """
         if not self.app_state.selected_folder:
             self.log("❌ 먼저 폴더를 선택해주세요.")
             return
@@ -465,6 +502,13 @@ class RightPanel(ctk.CTkFrame):
             RenameDialog(self.winfo_toplevel(), selected_files, new_names, on_confirm_rename)
             
     def execute_run(self, selected_files, settings):
+        """
+        실제 변환/이름변경 백그라운드 작업을 시작합니다. (확인창에서 '실행' 시 호출)
+        
+        Args:
+            selected_files (list): 변환 대상 파일 목록
+            settings (dict): 변환/이름변경에 필요한 모든 설정값
+        """
         self.main_window.set_run_state(True)
         self.progress_bar.set(0)
         self.lbl_progress.configure(text="진행 중...")

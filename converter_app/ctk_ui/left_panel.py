@@ -27,6 +27,10 @@ class LeftPanel(ctk.CTkFrame):
         self.build_ui()
         
     def build_ui(self):
+        """
+        좌측 패널의 UI 위젯들을 초기화하고 화면에 배치합니다.
+        (폴더 열기 버튼, 트리뷰(목록), 썸네일 미리보기 등)
+        """
         # 1. Folder Selection & File List
         folder_frame = ctk.CTkFrame(self)
         folder_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
@@ -125,6 +129,13 @@ class LeftPanel(ctk.CTkFrame):
         self.btn_rotate.grid(row=2, column=1, padx=10, pady=10, sticky="e")
         
     def on_state_change(self, event, **kwargs):
+        """
+        AppState에서 상태 변경 이벤트가 발생했을 때 호출되는 콜백 함수입니다.
+        
+        Args:
+            event (str): 발생한 이벤트 이름
+            **kwargs: 추가적으로 전달된 인자들
+        """
         if event == "files_updated":
             self.lbl_folder_path.configure(text=self.app_state.selected_folder, text_color=("black", "white"))
             self.refresh_listbox(full_reload=True)
@@ -135,16 +146,25 @@ class LeftPanel(ctk.CTkFrame):
             self.update_preview()
 
     def on_open_folder(self):
+        """
+        '폴더 열기' 버튼 클릭 시 디렉토리 선택 창을 띄웁니다.
+        """
         path = filedialog.askdirectory(title="이미지가 있는 폴더를 선택하세요")
         if path:
             self.on_folder_selected(path)
             
     def clear_list(self):
+        """
+        '목록 비우기' 버튼 클릭 시 선택된 파일 목록을 모두 초기화합니다.
+        """
         self.app_state.update_files("", [])
         self.lbl_folder_path.configure(text="선택된 폴더 없음", text_color="gray")
         self.main_window.log("🗑️목록이 비워졌습니다.")
         
     def refresh_folder(self):
+        """
+        현재 선택된 폴더 내의 파일들을 다시 스캔하여 목록을 새로고침합니다.
+        """
         if self.app_state.selected_folder:
             self.on_folder_selected(self.app_state.selected_folder)
             self.main_window.log("🔄 목록이 새로고침 되었습니다.")
@@ -152,6 +172,12 @@ class LeftPanel(ctk.CTkFrame):
             self.main_window.log("❌ 먼저 폴더를 선택해주세요.")
         
     def on_folder_selected(self, path):
+        """
+        사용자가 폴더를 선택했을 때 해당 폴더 내의 이미지 파일들을 스캔하여 AppState에 업데이트합니다.
+        
+        Args:
+            path (str): 선택된 폴더의 절대 경로
+        """
         valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')
         files = []
         try:
@@ -165,6 +191,13 @@ class LeftPanel(ctk.CTkFrame):
         self.main_window.log(f"📁 폴더에서 {len(files)}개의 이미지를 불러왔습니다.")
         
     def refresh_listbox(self, full_reload=False):
+        """
+        트리뷰(목록)의 내용을 갱신합니다.
+        변경 전/후 파일명을 미리보기 형식으로 보여줍니다.
+        
+        Args:
+            full_reload (bool): 전체 목록을 지우고 다시 그릴지 여부
+        """
         current_children = self.tree.get_children()
         total_files = len(self.app_state.image_files)
         
@@ -214,20 +247,26 @@ class LeftPanel(ctk.CTkFrame):
         self.update_file_count()
         
     def select_all(self):
+        """트리뷰의 모든 항목을 선택 상태로 만듭니다."""
         self.tree.selection_set(self.tree.get_children())
         self.on_listbox_select()
         
     def deselect_all(self):
+        """트리뷰의 모든 항목 선택을 해제합니다."""
         self.tree.selection_remove(self.tree.get_children())
         self.on_listbox_select()
         
     def on_listbox_select(self):
+        """
+        트리뷰에서 항목 선택 시 호출되며, 선택된 파일 수 업데이트 및 미리보기를 갱신합니다.
+        """
         self.update_file_count()
         self.main_window.on_selection_change()
         # Preview update logic should be async to avoid lag
         self.update_preview()
         
     def update_file_count(self):
+        """현재 선택된 파일의 개수를 라벨에 업데이트하여 표시합니다."""
         total = len(self.app_state.image_files)
         selected = len(self.tree.selection())
         self.lbl_file_count.configure(text=f"(선택된 파일: {selected} / {total}개)")

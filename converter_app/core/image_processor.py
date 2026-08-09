@@ -37,6 +37,19 @@ def _process_single_image(args):
 class ImageProcessor:
     @staticmethod
     def _get_output_dir(folder_path: str, save_location: str, subfolder_name: str, date_prefix: str, log: callable) -> str:
+        """
+        옵션에 따라 이미지가 저장될 최종 출력 디렉토리 경로를 생성하고 반환합니다.
+        
+        Args:
+            folder_path (str): 원본 폴더 경로
+            save_location (str): 'same'(현재 폴더) 또는 'sub'(하위 폴더)
+            subfolder_name (str): 하위 폴더의 이름
+            date_prefix (str): 'datetime', 'date', 'none' 중 하나로 접두어 설정
+            log (callable): 로그 출력을 위한 콜백 함수
+            
+        Returns:
+            str: 생성된 출력 폴더의 절대 경로
+        """
         output_dir = folder_path
         if save_location == "sub":
             now = datetime.now()
@@ -58,6 +71,15 @@ class ImageProcessor:
 
     @staticmethod
     def format_size(size_bytes: int) -> str:
+        """
+        바이트 단위의 파일 크기를 사람이 읽기 쉬운 문자열(KB, MB)로 변환합니다.
+        
+        Args:
+            size_bytes (int): 바이트 단위 크기
+            
+        Returns:
+            str: 포맷팅된 크기 문자열 (예: 1.5MB)
+        """
         if size_bytes < 1024:
             return f"{size_bytes}B"
         elif size_bytes < 1024 * 1024:
@@ -67,6 +89,16 @@ class ImageProcessor:
 
     @staticmethod
     def calculate_expected_size_async(filepath, rotation, compression_method, callback_success, callback_error):
+        """
+        이미지 변환 시 예상되는 파일 크기를 비동기적으로 계산하여 콜백으로 전달합니다.
+        
+        Args:
+            filepath (str): 대상 파일 경로
+            rotation (int): 적용할 회전 각도
+            compression_method (str|int): WebP 압축 옵션(method)
+            callback_success (callable): 계산 성공 시 호출될 함수 (예상 크기 전달)
+            callback_error (callable): 계산 실패 시 호출될 함수 (에러 메시지 전달)
+        """
         def calc():
             try:
                 method_val = int(compression_method)
@@ -95,9 +127,21 @@ class ImageProcessor:
     @staticmethod
     def process_images_async(selected_files, folder_path, raw_name, separator, save_location, subfolder_name, date_prefix, delete_orig, compression_method, rotations, callbacks, pad_mode="자동"):
         """
-        callbacks: dict with keys 'log', 'progress', 'done'
-        selected_files: list of filenames to process
-        rotations: dict of filepath to rotation degrees
+        선택된 여러 이미지 파일들을 비동기(멀티프로세싱)로 WebP 변환하고 저장합니다.
+        
+        Args:
+            selected_files (list): 변환할 원본 파일명 리스트
+            folder_path (str): 원본 폴더 경로
+            raw_name (str): 변경할 파일 이름의 베이스 텍스트
+            separator (str): 파일 이름의 띄어쓰기를 대체할 연결 기호
+            save_location (str): 저장 위치 옵션
+            subfolder_name (str): 하위 폴더 사용 시 폴더 이름
+            date_prefix (str): 접두어로 사용할 날짜 옵션
+            delete_orig (bool): 변환 후 원본 파일 삭제 여부
+            compression_method (str|int): WebP 압축 품질(method) 옵션
+            rotations (dict): 각 파일별 적용할 회전 각도 딕셔너리
+            callbacks (dict): 상태 업데이트를 위한 콜백 함수들 ('log', 'progress', 'done')
+            pad_mode (str): 숫자 패딩 모드 (기본 "자동")
         """
         def process():
             log = callbacks.get('log', lambda m: None)
@@ -145,7 +189,7 @@ class ImageProcessor:
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 # Submit all tasks
                 future_to_task = {
-                    executor.submit(_process_single_image, (t[0], t[1], t[2], t[3])): t for t in tasks
+                    executor.submit(_process_single_image, (t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7])): t for t in tasks
                 }
                 
                 for future in concurrent.futures.as_completed(future_to_task):
@@ -188,10 +232,20 @@ class ImageProcessor:
     @staticmethod
     def rename_images_async(selected_files, folder_path, raw_name, separator, save_location, subfolder_name, date_prefix, delete_orig, callbacks, pad_mode="자동", target_ext="원본 유지"):
         """
-        callbacks: dict with keys 'log', 'progress', 'done'
-        selected_files: list of filenames to process in order
-        pad_mode: string, "자동", "지정안함", "2자리" 등
-        target_ext: string, "원본 유지" 또는 ".png" 등
+        이미지 확장자 변경 없이 이름만 일괄 변경하거나 지정한 확장자로 단순 복사/이동합니다.
+        
+        Args:
+            selected_files (list): 변경할 원본 파일명 리스트
+            folder_path (str): 원본 폴더 경로
+            raw_name (str): 변경할 파일 이름의 베이스 텍스트
+            separator (str): 파일 이름의 띄어쓰기를 대체할 연결 기호
+            save_location (str): 저장 위치 옵션
+            subfolder_name (str): 하위 폴더 사용 시 폴더 이름
+            date_prefix (str): 접두어로 사용할 날짜 옵션
+            delete_orig (bool): 복사 후 원본 파일 삭제(이동) 여부
+            callbacks (dict): 상태 업데이트를 위한 콜백 함수들 ('log', 'progress', 'done')
+            pad_mode (str): 숫자 패딩 모드 (기본 "자동")
+            target_ext (str): 변경할 확장자 (기본 "원본 유지")
         """
         def process():
             log = callbacks.get('log', lambda m: None)
@@ -259,6 +313,17 @@ class ImageProcessor:
 
     @staticmethod
     def create_thumbnail(filepath, rotation, max_size=(550, 550)):
+        """
+        UI 미리보기를 위해 이미지의 썸네일을 생성하고 Base64 문자열로 반환합니다.
+        
+        Args:
+            filepath (str): 원본 파일 경로
+            rotation (int): 적용할 회전 각도
+            max_size (tuple): 썸네일 최대 너비/높이
+            
+        Returns:
+            str: Base64로 인코딩된 PNG 이미지 데이터
+        """
         import base64
         with Image.open(filepath) as img:
             if rotation != 0:
