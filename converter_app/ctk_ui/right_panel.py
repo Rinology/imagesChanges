@@ -233,7 +233,7 @@ class RightPanel(ctk.CTkFrame):
         ctk.CTkLabel(g1, text="이름 연결 기호:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
         sep_frame = ctk.CTkFrame(g1, fg_color="transparent")
         sep_frame.grid(row=2, column=1, padx=5, pady=5, sticky="w")
-        self.r_sep_var = ctk.StringVar(value="-")
+        self.r_sep_var = ctk.StringVar(value="_")
         ctk.CTkRadioButton(sep_frame, text="_(언더바)", variable=self.r_sep_var, value="_", command=self.update_r_preview).pack(side="left", padx=(0, 5))
         ctk.CTkRadioButton(sep_frame, text="-(하이픈)", variable=self.r_sep_var, value="-", command=self.update_r_preview).pack(side="left", padx=5)
         ctk.CTkRadioButton(sep_frame, text=" (띄어쓰기)", variable=self.r_sep_var, value=" ", command=self.update_r_preview).pack(side="left", padx=5)
