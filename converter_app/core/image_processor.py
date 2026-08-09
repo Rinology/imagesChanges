@@ -36,13 +36,14 @@ def _process_single_image(args):
 
 class ImageProcessor:
     @staticmethod
-    def _get_output_dir(file_dir: str, save_location: str, subfolder_name: str, date_prefix: str, log: callable, run_time: datetime) -> str:
+    def _get_output_dir(file_dir: str, save_location: str, custom_path: str, subfolder_name: str, date_prefix: str, log: callable, run_time: datetime) -> str:
         """
         옵션에 따라 이미지가 저장될 최종 출력 디렉토리 경로를 생성하고 반환합니다.
         
         Args:
             file_dir (str): 원본 파일의 디렉토리 경로
-            save_location (str): 'same'(현재 폴더) 또는 'sub'(하위 폴더)
+            save_location (str): 'same'(현재 폴더), 'sub'(하위 폴더), 'custom'(새로운 경로)
+            custom_path (str): 'custom' 선택 시 지정된 디렉토리 경로
             subfolder_name (str): 하위 폴더의 이름
             date_prefix (str): 'datetime', 'date', 'none' 중 하나로 접두어 설정
             log (callable): 로그 출력을 위한 콜백 함수
@@ -51,25 +52,37 @@ class ImageProcessor:
         Returns:
             str: 생성된 출력 폴더의 절대 경로
         """
-        output_dir = file_dir
-        if save_location == "sub":
-            prefix = ""
-            if date_prefix == "datetime":
-                prefix = run_time.strftime("%Y%m%d_%H%M%S") + "_"
-            elif date_prefix == "date":
-                prefix = run_time.strftime("%Y%m%d") + "_"
-                
-            folder_name = f"{prefix}{subfolder_name}" if subfolder_name else prefix.rstrip("_")
+        if save_location == "custom" and custom_path:
+            base_dir = custom_path
+        else:
+            base_dir = file_dir
+            
+        if save_location == "same":
+            return base_dir
+            
+        # "sub" or "custom" with subfolder options
+        prefix = ""
+        if date_prefix == "datetime":
+            prefix = run_time.strftime("%Y%m%d_%H%M%S") + "_"
+        elif date_prefix == "date":
+            prefix = run_time.strftime("%Y%m%d") + "_"
+            
+        folder_name = f"{prefix}{subfolder_name}" if subfolder_name else prefix.rstrip("_")
+        
+        if not folder_name and save_location == "custom":
+            output_dir = base_dir
+        else:
             if not folder_name:
                 folder_name = "output"
+            output_dir = os.path.join(base_dir, folder_name)
+            
+        if not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir)
+                log(f"📂 폴더 생성됨: {output_dir}")
+            except FileExistsError:
+                pass
                 
-            output_dir = os.path.join(file_dir, folder_name)
-            if not os.path.exists(output_dir):
-                try:
-                    os.makedirs(output_dir)
-                    log(f"📂 폴더 생성됨: {output_dir}")
-                except FileExistsError:
-                    pass
         return output_dir
 
     @staticmethod
@@ -177,7 +190,10 @@ class ImageProcessor:
                     continue
                     
                 file_dir = os.path.dirname(filepath)
-                output_dir = ImageProcessor._get_output_dir(file_dir, save_location, subfolder_name, date_prefix, log, run_time)
+                output_dir = ImageProcessor._get_output_dir(
+                    file_dir, save_location, callbacks.get('custom_path', ''),
+                    subfolder_name, date_prefix, log, run_time
+                )
                 last_output_dir = output_dir
                 
                 if pad_length == 0:
@@ -279,7 +295,10 @@ class ImageProcessor:
                 filename = os.path.basename(filepath)
                 file_dir = os.path.dirname(filepath)
                 
-                output_dir = ImageProcessor._get_output_dir(file_dir, save_location, subfolder_name, date_prefix, log, run_time)
+                output_dir = ImageProcessor._get_output_dir(
+                    file_dir, save_location, callbacks.get('custom_path', ''),
+                    subfolder_name, date_prefix, log, run_time
+                )
                 last_output_dir = output_dir
                 
                 if target_ext == "원본 유지":
