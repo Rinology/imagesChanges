@@ -467,7 +467,8 @@ class RightPanel(ctk.CTkFrame):
             def on_confirm_compress():
                 self.execute_run(selected_files, settings)
                 
-            RenameDialog(self.winfo_toplevel(), selected_files, new_names, on_confirm_compress)
+            orig_basenames = [os.path.basename(f) for f in selected_files]
+            RenameDialog(self.winfo_toplevel(), orig_basenames, new_names, on_confirm_compress)
             
         else:
             settings = self.get_rename_settings()
@@ -499,7 +500,8 @@ class RightPanel(ctk.CTkFrame):
             def on_confirm_rename():
                 self.execute_run(selected_files, settings)
                 
-            RenameDialog(self.winfo_toplevel(), selected_files, new_names, on_confirm_rename)
+            orig_basenames = [os.path.basename(f) for f in selected_files]
+            RenameDialog(self.winfo_toplevel(), orig_basenames, new_names, on_confirm_rename)
             
     def execute_run(self, selected_files, settings):
         """
@@ -538,13 +540,13 @@ class RightPanel(ctk.CTkFrame):
         
         if settings.get('mode') == 'rename':
             ImageProcessor.rename_images_async(
-                selected_files, self.app_state.selected_folder, settings['raw_name'], settings['separator'],
+                selected_files, settings['raw_name'], settings['separator'],
                 settings['save_location'], settings['subfolder_name'], settings['date_prefix'], settings['delete_orig'],
                 callbacks, settings['pad_mode'], settings['target_ext']
             )
         else:
             ImageProcessor.process_images_async(
-                selected_files, self.app_state.selected_folder, settings['raw_name'], settings['separator'],
+                selected_files, settings['raw_name'], settings['separator'],
                 settings['save_location'], settings['subfolder_name'], settings['date_prefix'], settings['delete_orig'],
                 settings['compression_method'], self.app_state.rotations, callbacks, settings['pad_mode']
             )

@@ -39,14 +39,17 @@ class LeftPanel(ctk.CTkFrame):
         self.btn_open_folder = ctk.CTkButton(folder_frame, text="📂 폴더 열기", command=self.on_open_folder, width=100)
         self.btn_open_folder.grid(row=0, column=0, padx=(10, 5), pady=10)
         
+        self.btn_add_files = ctk.CTkButton(folder_frame, text="📄 파일 추가", command=self.on_add_files, width=100)
+        self.btn_add_files.grid(row=0, column=1, padx=5, pady=10)
+        
         self.btn_clear_list = ctk.CTkButton(folder_frame, text="🗑️ 목록 비우기", command=self.clear_list, width=100, fg_color="transparent", border_width=1, text_color=("black", "white"))
-        self.btn_clear_list.grid(row=0, column=1, padx=5, pady=10)
+        self.btn_clear_list.grid(row=0, column=2, padx=5, pady=10)
         
         self.btn_refresh = ctk.CTkButton(folder_frame, text="🔄 새로고침", command=self.refresh_folder, width=100, fg_color="transparent", border_width=1, text_color=("black", "white"))
-        self.btn_refresh.grid(row=0, column=2, padx=5, pady=10)
+        self.btn_refresh.grid(row=0, column=3, padx=5, pady=10)
         
         self.lbl_folder_path = ctk.CTkLabel(folder_frame, text="선택된 폴더 없음", text_color="gray")
-        self.lbl_folder_path.grid(row=0, column=3, padx=5, pady=10, sticky="w")
+        self.lbl_folder_path.grid(row=0, column=4, padx=5, pady=10, sticky="w")
         
         list_frame = ctk.CTkFrame(self)
         list_frame.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
@@ -149,9 +152,18 @@ class LeftPanel(ctk.CTkFrame):
         """
         '폴더 열기' 버튼 클릭 시 디렉토리 선택 창을 띄웁니다.
         """
-        path = filedialog.askdirectory(title="이미지가 있는 폴더를 선택하세요")
+        path = filedialog.askdirectory(title="폴더를 선택하세요")
         if path:
             self.on_folder_selected(path)
+            
+    def on_add_files(self):
+        """
+        '파일 추가' 버튼 클릭 시 파일 선택 창을 띄우고 목록에 추가합니다.
+        """
+        filepaths = filedialog.askopenfilenames(title="추가할 파일들을 선택하세요")
+        if filepaths:
+            self.app_state.append_files(list(filepaths))
+            self.main_window.log(f"📄 {len(filepaths)}개의 파일이 추가되었습니다.")
             
     def clear_list(self):
         """
@@ -173,22 +185,25 @@ class LeftPanel(ctk.CTkFrame):
         
     def on_folder_selected(self, path):
         """
-        사용자가 폴더를 선택했을 때 해당 폴더 내의 이미지 파일들을 스캔하여 AppState에 업데이트합니다.
+        사용자가 폴더를 선택했을 때 해당 폴더 내의 파일들을 스캔하여 AppState에 업데이트합니다.
+        숨김 파일을 제외한 모든 파일을 불러옵니다.
         
         Args:
             path (str): 선택된 폴더의 절대 경로
         """
-        valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')
         files = []
         try:
             for f in os.listdir(path):
-                if f.lower().endswith(valid_extensions):
-                    files.append(f)
+                # 숨김 파일 및 디렉토리 제외
+                if not f.startswith('.'):
+                    full_p = os.path.join(path, f)
+                    if os.path.isfile(full_p):
+                        files.append(f)
         except Exception:
             pass
             
         self.app_state.update_files(path, files)
-        self.main_window.log(f"📁 폴더에서 {len(files)}개의 이미지를 불러왔습니다.")
+        self.main_window.log(f"📁 폴더에서 {len(files)}개의 파일을 불러왔습니다.")
         
     def refresh_listbox(self, full_reload=False):
         """
@@ -205,9 +220,10 @@ class LeftPanel(ctk.CTkFrame):
             if full_reload:
                 self.tree.delete(*current_children)
                 for i, f in enumerate(self.app_state.image_files):
+                    basename = os.path.basename(f)
                     old_idx = self.app_state.original_files.index(f) + 1 if f in self.app_state.original_files else i + 1
                     new_idx = i + 1
-                    self.tree.insert("", tk.END, values=(str(old_idx), f, str(new_idx), ""), tags=("normal",))
+                    self.tree.insert("", tk.END, values=(str(old_idx), basename, str(new_idx), ""), tags=("normal",))
             self.update_file_count()
             return
             
@@ -225,15 +241,16 @@ class LeftPanel(ctk.CTkFrame):
             self.tree.delete(*current_children)
             
         for i, f in enumerate(self.app_state.image_files):
-            new_f = generate_new_filename(f, i + 1, settings, total_files)
+            basename = os.path.basename(f)
+            new_f = generate_new_filename(basename, i + 1, settings, total_files)
             
             old_idx = self.app_state.original_files.index(f) + 1 if f in self.app_state.original_files else i + 1
             new_idx = i + 1
                 
             if fast_update:
-                self.tree.item(current_children[i], values=(str(old_idx), f, str(new_idx), new_f), tags=("normal",))
+                self.tree.item(current_children[i], values=(str(old_idx), basename, str(new_idx), new_f), tags=("normal",))
             else:
-                self.tree.insert("", tk.END, values=(str(old_idx), f, str(new_idx), new_f), tags=("normal",))
+                self.tree.insert("", tk.END, values=(str(old_idx), basename, str(new_idx), new_f), tags=("normal",))
                 
         if not fast_update:
             new_children = self.tree.get_children()
@@ -367,8 +384,7 @@ class LeftPanel(ctk.CTkFrame):
         if not indices: return
         
         first_idx = indices[0]
-        filename = self.app_state.image_files[first_idx]
-        filepath = os.path.join(self.app_state.selected_folder, filename)
+        filepath = self.app_state.image_files[first_idx]
         
         current_rot = self.app_state.get_rotation(filepath)
         self.app_state.set_rotation(filepath, (current_rot - 90) % 360)
@@ -376,19 +392,26 @@ class LeftPanel(ctk.CTkFrame):
     def update_preview(self):
         selected_files = self.get_selected_files()
         if not selected_files:
-            self.lbl_image.configure(image="", text="이미지 없음")
-            self.lbl_info.configure(text="선택된 이미지 없음")
+            self.lbl_image.configure(image="", text="파일 없음")
+            self.lbl_info.configure(text="선택된 파일 없음")
             self.btn_rotate.configure(state="disabled")
             self.current_preview_file = None
             return
             
-        first_file = selected_files[0]
-        filepath = os.path.join(self.app_state.selected_folder, first_file)
+        filepath = selected_files[0]
         rot = self.app_state.get_rotation(filepath)
+        
+        valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')
+        is_image = filepath.lower().endswith(valid_extensions)
         
         if filepath != self.current_preview_file or rot != getattr(self, 'current_preview_rot', None):
             self.current_preview_file = filepath
             self.current_preview_rot = rot
+            
+            if not is_image:
+                self._apply_preview(filepath, rot, None, "", False, is_image=False)
+                return
+                
             self.lbl_image.configure(image="", text="로딩 중...")
             
             def load_image_worker(target_path, target_rot):
@@ -407,9 +430,10 @@ class LeftPanel(ctk.CTkFrame):
                     
             threading.Thread(target=load_image_worker, args=(filepath, rot), daemon=True).start()
         else:
-            self._update_expected_size(first_file, filepath, rot)
+            if is_image:
+                self._update_expected_size(os.path.basename(filepath), filepath, rot)
 
-    def _apply_preview(self, filepath, rot, ctk_img, size_str, success):
+    def _apply_preview(self, filepath, rot, ctk_img, size_str, success, is_image=True):
         if self.current_preview_file != filepath or self.current_preview_rot != rot:
             return # User selected another file before this finished
             
@@ -421,8 +445,20 @@ class LeftPanel(ctk.CTkFrame):
             self.btn_rotate.configure(state="normal")
             self._update_expected_size(first_file, filepath, rot)
         else:
-            self.lbl_image.configure(image="", text="미리보기 실패")
-            self.lbl_info.configure(text=f"{first_file} (미리보기 실패)")
+            if not is_image:
+                msg = "미리보기 지원 안됨 (사진 아님)"
+                try:
+                    orig_size = os.path.getsize(filepath)
+                    size_str = ImageProcessor.format_size(orig_size)
+                    info_text = f"{first_file} ({size_str})"
+                except:
+                    info_text = f"{first_file}"
+            else:
+                msg = "미리보기 실패"
+                info_text = f"{first_file} (미리보기 실패)"
+                
+            self.lbl_image.configure(image="", text=msg)
+            self.lbl_info.configure(text=info_text)
             self.btn_rotate.configure(state="disabled")
 
     def _update_expected_size(self, first_file, filepath, rot):

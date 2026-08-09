@@ -37,13 +37,37 @@ class AppState:
         
         Args:
             folder (str): 선택된 폴더 경로
-            files (list): 선택된 파일들의 리스트
+            files (list): 선택된 파일들의 리스트 (순수 파일명)
         """
         self.selected_folder = folder
-        self.image_files = files.copy() if files else []
+        if files and folder:
+            import os
+            self.image_files = [os.path.join(folder, f) for f in files]
+        else:
+            self.image_files = []
         self.original_files = self.image_files.copy()
         self.rotations = {}
         self.notify_observers(event="files_updated")
+        
+    def append_files(self, filepaths):
+        """
+        기존 목록에 파일들(절대 경로)을 추가합니다.
+        
+        Args:
+            filepaths (list): 추가할 파일들의 절대 경로 리스트
+        """
+        if not filepaths:
+            return
+            
+        added = False
+        for fp in filepaths:
+            if fp not in self.image_files:
+                self.image_files.append(fp)
+                self.original_files.append(fp)
+                added = True
+                
+        if added:
+            self.notify_observers(event="files_updated")
         
     def get_rotation(self, filepath):
         """

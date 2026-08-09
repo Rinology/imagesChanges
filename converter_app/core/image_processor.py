@@ -36,37 +36,40 @@ def _process_single_image(args):
 
 class ImageProcessor:
     @staticmethod
-    def _get_output_dir(folder_path: str, save_location: str, subfolder_name: str, date_prefix: str, log: callable) -> str:
+    def _get_output_dir(file_dir: str, save_location: str, subfolder_name: str, date_prefix: str, log: callable, run_time: datetime) -> str:
         """
         옵션에 따라 이미지가 저장될 최종 출력 디렉토리 경로를 생성하고 반환합니다.
         
         Args:
-            folder_path (str): 원본 폴더 경로
+            file_dir (str): 원본 파일의 디렉토리 경로
             save_location (str): 'same'(현재 폴더) 또는 'sub'(하위 폴더)
             subfolder_name (str): 하위 폴더의 이름
             date_prefix (str): 'datetime', 'date', 'none' 중 하나로 접두어 설정
             log (callable): 로그 출력을 위한 콜백 함수
+            run_time (datetime): 작업 시작 시간 (폴더명 일관성 유지)
             
         Returns:
             str: 생성된 출력 폴더의 절대 경로
         """
-        output_dir = folder_path
+        output_dir = file_dir
         if save_location == "sub":
-            now = datetime.now()
             prefix = ""
             if date_prefix == "datetime":
-                prefix = now.strftime("%Y%m%d_%H%M%S") + "_"
+                prefix = run_time.strftime("%Y%m%d_%H%M%S") + "_"
             elif date_prefix == "date":
-                prefix = now.strftime("%Y%m%d") + "_"
+                prefix = run_time.strftime("%Y%m%d") + "_"
                 
             folder_name = f"{prefix}{subfolder_name}" if subfolder_name else prefix.rstrip("_")
             if not folder_name:
                 folder_name = "output"
                 
-            output_dir = os.path.join(folder_path, folder_name)
+            output_dir = os.path.join(file_dir, folder_name)
             if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-                log(f"📂 폴더 생성됨: {output_dir}")
+                try:
+                    os.makedirs(output_dir)
+                    log(f"📂 폴더 생성됨: {output_dir}")
+                except FileExistsError:
+                    pass
         return output_dir
 
     @staticmethod
@@ -125,13 +128,12 @@ class ImageProcessor:
         threading.Thread(target=calc, daemon=True).start()
 
     @staticmethod
-    def process_images_async(selected_files, folder_path, raw_name, separator, save_location, subfolder_name, date_prefix, delete_orig, compression_method, rotations, callbacks, pad_mode="자동"):
+    def process_images_async(selected_files, raw_name, separator, save_location, subfolder_name, date_prefix, delete_orig, compression_method, rotations, callbacks, pad_mode="자동"):
         """
         선택된 여러 이미지 파일들을 비동기(멀티프로세싱)로 WebP 변환하고 저장합니다.
         
         Args:
-            selected_files (list): 변환할 원본 파일명 리스트
-            folder_path (str): 원본 폴더 경로
+            selected_files (list): 변환할 원본 파일의 절대 경로 리스트
             raw_name (str): 변경할 파일 이름의 베이스 텍스트
             separator (str): 파일 이름의 띄어쓰기를 대체할 연결 기호
             save_location (str): 저장 위치 옵션
@@ -151,21 +153,32 @@ class ImageProcessor:
             log("🚀 변환 작업을 시작합니다... (멀티프로세싱 활성화됨)")
             total_files = len(selected_files)
             base_name = raw_name.replace(" ", separator)
-            
-            output_dir = ImageProcessor._get_output_dir(folder_path, save_location, subfolder_name, date_prefix, log)
+            run_time = datetime.now()
 
             success_count = 0
             error_count = 0
             total_saved_bytes = 0
+            last_output_dir = ""
             
             pad_length = get_pad_length(pad_mode, total_files)
             method_val = int(compression_method)
             
             tasks = []
             
-            for i, filename in enumerate(selected_files):
+            valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')
+            
+            for i, filepath in enumerate(selected_files):
                 idx = i + 1
-                filepath = os.path.join(folder_path, filename)
+                filename = os.path.basename(filepath)
+                
+                if not filepath.lower().endswith(valid_extensions):
+                    log(f"⚠️ [{idx}/{total_files}] 사진 파일이 아니어서 건너뜁니다: {filename}")
+                    progress_cb(idx, total_files)
+                    continue
+                    
+                file_dir = os.path.dirname(filepath)
+                output_dir = ImageProcessor._get_output_dir(file_dir, save_location, subfolder_name, date_prefix, log, run_time)
+                last_output_dir = output_dir
                 
                 if pad_length == 0:
                     new_filename = f"{base_name}.webp"
@@ -187,9 +200,8 @@ class ImageProcessor:
             completed = 0
             
             with concurrent.futures.ProcessPoolExecutor() as executor:
-                # Submit all tasks
                 future_to_task = {
-                    executor.submit(_process_single_image, (t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7])): t for t in tasks
+                    executor.submit(_process_single_image, (t[0], t[1], t[2], t[3])): t for t in tasks
                 }
                 
                 for future in concurrent.futures.as_completed(future_to_task):
@@ -225,18 +237,17 @@ class ImageProcessor:
             if total_saved_bytes > 0:
                 log(f"💾 총 절감된 용량: {ImageProcessor.format_size(total_saved_bytes)}")
                 
-            done_cb(success_count, error_count, total_saved_bytes, output_dir)
+            done_cb(success_count, error_count, total_saved_bytes, last_output_dir)
 
         threading.Thread(target=process, daemon=True).start()
 
     @staticmethod
-    def rename_images_async(selected_files, folder_path, raw_name, separator, save_location, subfolder_name, date_prefix, delete_orig, callbacks, pad_mode="자동", target_ext="원본 유지"):
+    def rename_images_async(selected_files, raw_name, separator, save_location, subfolder_name, date_prefix, delete_orig, callbacks, pad_mode="자동", target_ext="원본 유지"):
         """
         이미지 확장자 변경 없이 이름만 일괄 변경하거나 지정한 확장자로 단순 복사/이동합니다.
         
         Args:
-            selected_files (list): 변경할 원본 파일명 리스트
-            folder_path (str): 원본 폴더 경로
+            selected_files (list): 변경할 원본 파일의 절대 경로 리스트
             raw_name (str): 변경할 파일 이름의 베이스 텍스트
             separator (str): 파일 이름의 띄어쓰기를 대체할 연결 기호
             save_location (str): 저장 위치 옵션
@@ -255,17 +266,22 @@ class ImageProcessor:
             log("🚀 이름 변경 작업을 시작합니다...")
             total_files = len(selected_files)
             base_name = raw_name.replace(" ", separator)
-            
-            output_dir = ImageProcessor._get_output_dir(folder_path, save_location, subfolder_name, date_prefix, log)
+            run_time = datetime.now()
 
             success_count = 0
             error_count = 0
+            last_output_dir = ""
             
             pad_length = get_pad_length(pad_mode, total_files)
 
-            for i, filename in enumerate(selected_files):
+            for i, filepath in enumerate(selected_files):
                 idx = i + 1
-                filepath = os.path.join(folder_path, filename)
+                filename = os.path.basename(filepath)
+                file_dir = os.path.dirname(filepath)
+                
+                output_dir = ImageProcessor._get_output_dir(file_dir, save_location, subfolder_name, date_prefix, log, run_time)
+                last_output_dir = output_dir
+                
                 if target_ext == "원본 유지":
                     ext = os.path.splitext(filename)[1]
                 else:
@@ -307,7 +323,7 @@ class ImageProcessor:
                 progress_cb(idx, total_files)
                     
             log(f"🎉 이름 변경 완료! (성공: {success_count}, 에러: {error_count})")
-            done_cb(success_count, error_count, 0, output_dir) # total_saved_bytes = 0
+            done_cb(success_count, error_count, 0, last_output_dir) # total_saved_bytes = 0
 
         threading.Thread(target=process, daemon=True).start()
 
