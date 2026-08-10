@@ -11,11 +11,13 @@ def main():
     """
     ctk.set_appearance_mode("System")
     ctk.set_default_color_theme("blue")
+    ctk.set_widget_scaling(0.85)  # 글씨 및 위젯 크기 약간 축소
+    ctk.set_window_scaling(0.85)
     
     app = ctk.CTk()
     app.title("Image Converter")
-    app.geometry("1600x1150")
-    app.minsize(1000, 800)
+    app.geometry("1100x800")
+    app.minsize(900, 700)
     
     # Grid configure to make main_window fill the entire app
     app.grid_rowconfigure(0, weight=1)
